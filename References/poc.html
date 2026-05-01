@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Grid Composition Generator — PoC v0.6</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f0f; --surface: #181818; --border: #2a2a2a; --border-accent: #3d3d3d;
+    --label: #555; --text-dim: #666; --text: #999; --text-bright: #ccc;
+    --accent: #e0e0e0; --tag-bg: #1e1e1e;
+  }
+  body { background: var(--bg); font-family: 'IBM Plex Mono', monospace; color: var(--text); min-height: 100vh; display: flex; flex-direction: column; font-size: 12px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .topbar-title { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-bright); }
+  .topbar-meta { font-size: 10px; color: var(--label); letter-spacing: 0.05em; }
+  .app { flex: 1; display: flex; overflow: hidden; }
+
+  .sidebar { width: 300px; min-width: 300px; border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; overflow-y: auto; }
+  .section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .section-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--label); margin-bottom: 10px; }
+
+  .module-list { display: flex; flex-direction: column; gap: 6px; }
+  .module-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px; background: var(--tag-bg); border: 1px solid var(--border); }
+  .module-preview { width: 36px; height: 36px; flex-shrink: 0; border: 1px solid var(--border-accent); }
+  .module-controls { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .shape-selector { display: flex; gap: 3px; }
+  .shape-btn { width: 22px; height: 22px; background: var(--border); border: 1px solid transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+  .shape-btn.active { border-color: var(--text-dim); background: #2a2a2a; }
+  .shape-btn svg { width: 13px; height: 13px; }
+  .color-row { display: flex; align-items: center; gap: 8px; }
+  .color-pair { display: flex; align-items: center; gap: 4px; }
+  .color-pair-label { font-size: 8px; color: var(--label); letter-spacing: 0.06em; text-transform: uppercase; }
+  input[type="color"] { width: 26px; height: 18px; border: 1px solid var(--border-accent); padding: 0; background: transparent; cursor: pointer; }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type="color"]::-webkit-color-swatch { border: none; }
+  .weight-row { display: flex; align-items: center; gap: 6px; }
+  .weight-row-label { font-size: 8px; color: var(--label); letter-spacing: 0.06em; text-transform: uppercase; }
+  input[type="range"].mini { flex: 1; height: 14px; }
+  .weight-num { font-size: 10px; color: var(--text-bright); width: 14px; text-align: right; }
+  .remove-btn { width: 18px; height: 18px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; padding: 0; font-family: inherit; }
+  .remove-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .add-btn { width: 100%; margin-top: 8px; padding: 7px; background: transparent; border: 1px dashed var(--border-accent); color: var(--text-dim); font-family: inherit; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+  .add-btn:hover { color: var(--text); border-color: var(--text-dim); }
+
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .row:last-child { margin-bottom: 0; }
+  .row-label { font-size: 9px; color: var(--text-dim); width: 56px; flex-shrink: 0; letter-spacing: 0.05em; text-transform: uppercase; }
+  input[type="range"] { flex: 1; height: 14px; accent-color: var(--accent); }
+  .row-value { font-size: 10px; color: var(--text-bright); width: 32px; text-align: right; flex-shrink: 0; }
+  .row-select { font-size: 10px; color: var(--text-bright); padding: 4px 8px; background: var(--tag-bg); border: 1px solid var(--border-accent); font-family: inherit; flex: 1; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+  .toggle-label { font-size: 10px; color: var(--text); letter-spacing: 0.05em; }
+  input[type="checkbox"] { accent-color: var(--accent); }
+
+  .matrix-help { font-size: 8px; color: var(--label); margin-bottom: 8px; line-height: 1.5; letter-spacing: 0.04em; }
+  .matrix-table { border-collapse: collapse; margin: 0 auto; }
+  .matrix-table th, .matrix-table td { padding: 2px; text-align: center; }
+  .matrix-table .mini-preview { width: 16px; height: 16px; display: block; margin: 0 auto; border: 1px solid var(--border-accent); }
+  .matrix-table .corner { color: var(--label); font-size: 7px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .matrix-cell { width: 16px; height: 16px; border: 1px solid var(--border); background: var(--tag-bg); cursor: pointer; padding: 0; font-family: inherit; font-size: 9px; line-height: 1; color: transparent; }
+  .matrix-cell.on { background: var(--text-dim); border-color: var(--text-dim); color: var(--accent); }
+  .matrix-cell.on::after { content: '●'; }
+  .matrix-actions { display: flex; gap: 4px; margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+  .matrix-action { font-family: inherit; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); padding: 4px 6px; border: 1px solid var(--border); background: transparent; cursor: pointer; }
+  .matrix-action:hover { color: var(--text); border-color: var(--text-dim); }
+
+  .btn-primary { width: 100%; padding: 10px; background: var(--accent); color: #000; font-family: inherit; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; border: none; cursor: pointer; margin-bottom: 8px; font-weight: 500; }
+  .btn-primary:hover { background: #fff; }
+  .btn-secondary { width: 100%; padding: 8px; background: transparent; color: var(--text); font-family: inherit; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid var(--border-accent); cursor: pointer; margin-bottom: 6px; }
+  .btn-secondary:hover { color: var(--text-bright); border-color: var(--text-dim); }
+  .btn-secondary:last-child { margin-bottom: 0; }
+
+  .canvas-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); padding: 32px; gap: 16px; }
+  .canvas-frame { position: relative; }
+  .canvas-label { position: absolute; top: -22px; left: 0; font-size: 9px; color: var(--label); letter-spacing: 0.12em; text-transform: uppercase; }
+  #canvas-svg { display: block; border: 1px solid var(--border-accent); width: 600px; height: 600px; max-width: 100%; max-height: 80vh; }
+  #grid-overlay { display: none; pointer-events: none; }
+  #grid-overlay.visible { display: block; }
+  .canvas-meta { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; max-width: 600px; }
+  .meta-item { font-size: 9px; color: var(--label); letter-spacing: 0.1em; text-transform: uppercase; }
+  .meta-value { color: var(--text-dim); margin-left: 6px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-title">Grid Composition Generator</span>
+  <span class="topbar-meta">PoC v0.6 — pre-oriented paths · perfect cell containment</span>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+
+    <div class="section">
+      <div class="section-label">Module pool</div>
+      <div class="module-list" id="module-list"></div>
+      <button class="add-btn" id="add-module">+ Add module</button>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Grid</div>
+      <div class="row">
+        <span class="row-label">Cols</span>
+        <input type="range" id="cols" min="1" max="24" step="1" value="8">
+        <span class="row-value" id="cols-val">8</span>
+      </div>
+      <div class="row">
+        <span class="row-label">Rows</span>
+        <input type="range" id="rows" min="1" max="24" step="1" value="8">
+        <span class="row-value" id="rows-val">8</span>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Show grid</span>
+        <input type="checkbox" id="show-grid">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Generation</div>
+      <div class="row">
+        <span class="row-label">Noise</span>
+        <input type="range" id="noise-scale" min="0.05" max="2.0" step="0.05" value="0.40">
+        <span class="row-value" id="noise-val">0.40</span>
+      </div>
+      <div class="row">
+        <span class="row-label">Symmetry</span>
+        <select class="row-select" id="symmetry">
+          <option value="none">None</option>
+          <option value="mirrorX">Mirror X</option>
+          <option value="mirrorY">Mirror Y</option>
+          <option value="fourFold">4-fold</option>
+        </select>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Random rotation</span>
+        <input type="checkbox" id="rotation" checked>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Grammar — transitions</div>
+      <div class="toggle-row" style="margin-bottom:10px;">
+        <span class="toggle-label">Apply grammar</span>
+        <input type="checkbox" id="grammar-enabled">
+      </div>
+      <div class="matrix-help">Rows = from. Cols = to. Toggle to allow / block.</div>
+      <div id="matrix-wrap"></div>
+      <div class="matrix-actions">
+        <button class="matrix-action" id="g-all">All on</button>
+        <button class="matrix-action" id="g-none">All off</button>
+        <button class="matrix-action" id="g-identity">Identity</button>
+      </div>
+    </div>
+
+    <div class="section" style="border-bottom:none;">
+      <div class="section-label">Actions</div>
+      <button class="btn-primary" id="generate">↻ Generate</button>
+      <button class="btn-secondary" id="export-svg">↓ Export SVG</button>
+      <button class="btn-secondary" id="export-png">↓ Export PNG</button>
+    </div>
+
+  </aside>
+
+  <main class="canvas-area">
+    <div class="canvas-frame">
+      <span class="canvas-label">Live preview — pre-oriented SVG paths</span>
+      <svg id="canvas-svg" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+        <g id="cells"></g>
+        <g id="grid-overlay"></g>
+      </svg>
+    </div>
+    <div class="canvas-meta" id="canvas-meta"></div>
+  </main>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const SHAPES = ['quarterCircle', 'square', 'triangle'];
+const CANVAS_SIZE = 600;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+let nextId = 1;
+
+// ============================================================
+// SHAPE PATHS — pre-oriented, fit exactly to W×H, no transform needed
+// ============================================================
+// Each shape has 4 "step" variants (0=TL, 1=TR, 2=BR, 3=BL) corresponding
+// to which corner the shape "points" to or fills. Paths are derived by
+// mirroring the base orientation across cell axes.
+function shapePathD(shape, w, h, step = 0) {
+  if (shape === 'square') {
+    // Symmetric — all steps identical
+    return `M 0,0 L ${w},0 L ${w},${h} L 0,${h} Z`;
+  }
+
+  if (shape === 'quarterCircle') {
+    // Filled corner + adjacent corner + arc to opposite-adjacent corner
+    switch (step) {
+      case 0: return `M 0,0 L ${w},0 A ${w},${h} 0 0 1 0,${h} Z`;          // TL filled
+      case 1: return `M ${w},0 L 0,0 A ${w},${h} 0 0 0 ${w},${h} Z`;        // TR filled
+      case 2: return `M ${w},${h} L 0,${h} A ${w},${h} 0 0 1 ${w},0 Z`;     // BR filled
+      case 3: return `M 0,${h} L ${w},${h} A ${w},${h} 0 0 0 0,0 Z`;        // BL filled
+    }
+  }
+
+  if (shape === 'triangle') {
+    // Right triangle with hypotenuse across the cell's diagonal
+    switch (step) {
+      case 0: return `M 0,0 L ${w},0 L 0,${h} Z`;          // TL
+      case 1: return `M 0,0 L ${w},0 L ${w},${h} Z`;        // TR
+      case 2: return `M ${w},0 L ${w},${h} L 0,${h} Z`;     // BR
+      case 3: return `M 0,0 L ${w},${h} L 0,${h} Z`;        // BL
+    }
+  }
+}
+
+// ============================================================
+// STATE
+// ============================================================
+function makeModule(shape, fg, bg, weight = 1) {
+  return { id: 'mod_' + (nextId++), shape, fgColor: fg, bgColor: bg, weight };
+}
+
+const state = {
+  cols: 8,
+  rows: 8,
+  modules: [
+    makeModule('quarterCircle', '#111111', '#e63946', 3),
+    makeModule('quarterCircle', '#f0ece4', '#e63946', 3),
+    makeModule('square',        '#f0ece4', '#1a1a1a', 1),
+    makeModule('triangle',      '#1a1a1a', '#f0ece4', 1),
+  ],
+  rotationEnabled: true,
+  noiseScale: 0.4,
+  symmetry: 'none',
+  grammarEnabled: false,
+  showGrid: false,
+  grammar: {},
+  _noiseSeed: Math.random() * 10000,
+  _grid: null,
+};
+
+function initGrammar() {
+  state.grammar = {};
+  state.modules.forEach(m => {
+    state.grammar[m.id] = state.modules.map(x => x.id);
+  });
+}
+initGrammar();
+
+// ============================================================
+// NOISE & SELECTION
+// ============================================================
+function valueNoise(ix, iy, seed) {
+  const n = Math.sin(ix * 127.1 + iy * 311.7 + seed * 74.3) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+function smoothNoise(x, y, seed) {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  const fx = x - ix, fy = y - iy;
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+  const a = valueNoise(ix,     iy,     seed);
+  const b = valueNoise(ix + 1, iy,     seed);
+  const c = valueNoise(ix,     iy + 1, seed);
+  const d = valueNoise(ix + 1, iy + 1, seed);
+  return a + (b - a) * ux + (c - a) * uy + (d - b - c + a) * ux * uy;
+}
+
+function noiseWeightedPick(modules, noiseVal) {
+  if (modules.length === 0) return null;
+  const total = modules.reduce((s, m) => s + m.weight, 0);
+  let t = noiseVal * total;
+  for (const m of modules) {
+    t -= m.weight;
+    if (t <= 0) return m;
+  }
+  return modules[modules.length - 1];
+}
+
+function filterByGrammar(allModules, prevMod) {
+  if (!state.grammarEnabled || !prevMod) return allModules;
+  const allowedIds = state.grammar[prevMod.id];
+  if (!allowedIds || allowedIds.length === 0) return allModules;
+  const filtered = allModules.filter(m => allowedIds.includes(m.id));
+  return filtered.length > 0 ? filtered : allModules;
+}
+
+// ============================================================
+// SYMMETRY (now operates on step instead of degrees)
+// ============================================================
+// Steps encode which corner an asymmetric shape "points" to:
+// 0=TL, 1=TR, 2=BR, 3=BL
+// Mirror mappings:
+//   flipX (horizontal mirror): TL↔TR, BL↔BR  →  step ^ 1
+//   flipY (vertical mirror):   TL↔BL, TR↔BR  →  step ^ 3 doesn't work; use 3 - step
+//   both:                                      →  (step + 2) % 4
+function applyFlipStep(step, flipX, flipY) {
+  if (flipX && flipY) return (step + 2) % 4;
+  if (flipX) return step ^ 1;
+  if (flipY) return 3 - step;
+  return step;
+}
+
+function resolveSource(col, row) {
+  const halfCols = Math.ceil(state.cols / 2);
+  const halfRows = Math.ceil(state.rows / 2);
+  let sourceCol = col, sourceRow = row, flipX = false, flipY = false;
+
+  if ((state.symmetry === 'mirrorX' || state.symmetry === 'fourFold') && col >= halfCols) {
+    sourceCol = state.cols - 1 - col;
+    flipX = true;
+  }
+  if ((state.symmetry === 'mirrorY' || state.symmetry === 'fourFold') && row >= halfRows) {
+    sourceRow = state.rows - 1 - row;
+    flipY = true;
+  }
+  return { sourceCol, sourceRow, flipX, flipY };
+}
+
+// ============================================================
+// GENERATION
+// ============================================================
+function generate() {
+  if (state.modules.length === 0) return;
+  state._noiseSeed = Math.random() * 10000;
+
+  const sourceCols = (state.symmetry === 'mirrorX' || state.symmetry === 'fourFold')
+    ? Math.ceil(state.cols / 2) : state.cols;
+  const sourceRows = (state.symmetry === 'mirrorY' || state.symmetry === 'fourFold')
+    ? Math.ceil(state.rows / 2) : state.rows;
+
+  const sourceCells = {};
+  for (let row = 0; row < sourceRows; row++) {
+    let prevMod = null;
+    for (let col = 0; col < sourceCols; col++) {
+      const n = smoothNoise(col * state.noiseScale, row * state.noiseScale, state._noiseSeed);
+      const candidates = filterByGrammar(state.modules, prevMod);
+      const mod = noiseWeightedPick(candidates, n);
+      const step = state.rotationEnabled ? Math.floor(Math.random() * 4) : 0;
+      sourceCells[`${col},${row}`] = { mod, step };
+      prevMod = mod;
+    }
+  }
+
+  state._grid = [];
+  for (let row = 0; row < state.rows; row++) {
+    const rowArr = [];
+    for (let col = 0; col < state.cols; col++) {
+      const { sourceCol, sourceRow, flipX, flipY } = resolveSource(col, row);
+      const src = sourceCells[`${sourceCol},${sourceRow}`];
+      const finalStep = applyFlipStep(src.step, flipX, flipY);
+      rowArr.push({ mod: src.mod, step: finalStep });
+    }
+    state._grid.push(rowArr);
+  }
+
+  render();
+  updateMeta();
+}
+
+// ============================================================
+// SVG RENDERER (native DOM, no rotation transform)
+// ============================================================
+function buildCellElement(col, row, mod, step, cellW, cellH) {
+  const x = col * cellW;
+  const y = row * cellH;
+
+  const cellG = document.createElementNS(SVG_NS, 'g');
+  cellG.setAttribute('class', 'cell');
+  cellG.setAttribute('transform', `translate(${x},${y})`);
+  cellG.dataset.moduleId = mod.id;
+
+  const bg = document.createElementNS(SVG_NS, 'rect');
+  bg.setAttribute('class', 'cell-bg');
+  bg.setAttribute('width', cellW);
+  bg.setAttribute('height', cellH);
+  bg.setAttribute('fill', mod.bgColor);
+  cellG.appendChild(bg);
+
+  const shapeEl = document.createElementNS(SVG_NS, 'path');
+  shapeEl.setAttribute('class', 'cell-shape');
+  shapeEl.setAttribute('d', shapePathD(mod.shape, cellW, cellH, step));
+  shapeEl.setAttribute('fill', mod.fgColor);
+  cellG.appendChild(shapeEl);
+
+  return cellG;
+}
+
+function render() {
+  if (!state._grid) return;
+
+  const cellsGroup = document.getElementById('cells');
+  cellsGroup.innerHTML = '';
+
+  const cellW = CANVAS_SIZE / state.cols;
+  const cellH = CANVAS_SIZE / state.rows;
+
+  const frag = document.createDocumentFragment();
+  for (let row = 0; row < state.rows; row++) {
+    for (let col = 0; col < state.cols; col++) {
+      const { mod, step } = state._grid[row][col];
+      frag.appendChild(buildCellElement(col, row, mod, step, cellW, cellH));
+    }
+  }
+  cellsGroup.appendChild(frag);
+
+  renderGridOverlay();
+}
+
+function renderGridOverlay() {
+  const overlay = document.getElementById('grid-overlay');
+  overlay.innerHTML = '';
+  if (!state.showGrid) {
+    overlay.classList.remove('visible');
+    return;
+  }
+  overlay.classList.add('visible');
+
+  const cellW = CANVAS_SIZE / state.cols;
+  const cellH = CANVAS_SIZE / state.rows;
+  const frag = document.createDocumentFragment();
+
+  for (let i = 1; i < state.cols; i++) {
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', i * cellW);
+    line.setAttribute('y1', 0);
+    line.setAttribute('x2', i * cellW);
+    line.setAttribute('y2', CANVAS_SIZE);
+    line.setAttribute('stroke', '#000');
+    line.setAttribute('stroke-opacity', '0.35');
+    line.setAttribute('stroke-width', '0.5');
+    frag.appendChild(line);
+  }
+  for (let i = 1; i < state.rows; i++) {
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', 0);
+    line.setAttribute('y1', i * cellH);
+    line.setAttribute('x2', CANVAS_SIZE);
+    line.setAttribute('y2', i * cellH);
+    line.setAttribute('stroke', '#000');
+    line.setAttribute('stroke-opacity', '0.35');
+    line.setAttribute('stroke-width', '0.5');
+    frag.appendChild(line);
+  }
+  overlay.appendChild(frag);
+}
+
+function updateModuleColors(modId, fgColor, bgColor) {
+  const cells = document.querySelectorAll(`.cell[data-module-id="${modId}"]`);
+  cells.forEach(cell => {
+    if (bgColor) cell.querySelector('.cell-bg').setAttribute('fill', bgColor);
+    if (fgColor) cell.querySelector('.cell-shape').setAttribute('fill', fgColor);
+  });
+}
+
+// ============================================================
+// UI BUILDERS
+// ============================================================
+function shapeIcon(shape) {
+  switch (shape) {
+    case 'quarterCircle':
+      return '<svg viewBox="0 0 13 13"><path d="M0,0 L13,0 A13,13 0 0 1 0,13 Z" fill="#999"/></svg>';
+    case 'square':
+      return '<svg viewBox="0 0 13 13"><rect width="13" height="13" fill="#999"/></svg>';
+    case 'triangle':
+      return '<svg viewBox="0 0 13 13"><polygon points="0,0 13,0 0,13" fill="#999"/></svg>';
+  }
+}
+
+function modulePreviewSVG(mod, size = 36) {
+  let inner = `<rect width="${size}" height="${size}" fill="${mod.bgColor}"/>`;
+  inner += `<path d="${shapePathD(mod.shape, size, size, 0)}" fill="${mod.fgColor}"/>`;
+  return `<svg viewBox="0 0 ${size} ${size}">${inner}</svg>`;
+}
+
+function renderModuleList() {
+  const list = document.getElementById('module-list');
+  list.innerHTML = '';
+
+  state.modules.forEach((mod) => {
+    const item = document.createElement('div');
+    item.className = 'module-item';
+    item.dataset.id = mod.id;
+
+    item.innerHTML = `
+      <div class="module-preview">${modulePreviewSVG(mod)}</div>
+      <div class="module-controls">
+        <div class="shape-selector">
+          ${SHAPES.map(s => `<button class="shape-btn ${s === mod.shape ? 'active' : ''}" data-shape="${s}">${shapeIcon(s)}</button>`).join('')}
+        </div>
+        <div class="color-row">
+          <div class="color-pair">
+            <span class="color-pair-label">FG</span>
+            <input type="color" class="fg-color" value="${mod.fgColor}">
+          </div>
+          <div class="color-pair">
+            <span class="color-pair-label">BG</span>
+            <input type="color" class="bg-color" value="${mod.bgColor}">
+          </div>
+        </div>
+        <div class="weight-row">
+          <span class="weight-row-label">W</span>
+          <input type="range" class="mini mod-weight" min="1" max="10" step="1" value="${mod.weight}">
+          <span class="weight-num">${mod.weight}</span>
+        </div>
+      </div>
+      <button class="remove-btn" ${state.modules.length <= 1 ? 'disabled' : ''}>×</button>
+    `;
+
+    item.querySelectorAll('.shape-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        mod.shape = btn.dataset.shape;
+        item.querySelector('.module-preview').innerHTML = modulePreviewSVG(mod);
+        item.querySelectorAll('.shape-btn').forEach(b => b.classList.toggle('active', b.dataset.shape === mod.shape));
+        renderMatrix();
+        generate();
+      });
+    });
+
+    item.querySelector('.fg-color').addEventListener('input', e => {
+      mod.fgColor = e.target.value;
+      item.querySelector('.module-preview').innerHTML = modulePreviewSVG(mod);
+      updateModuleColors(mod.id, mod.fgColor, null);
+      renderMatrix();
+    });
+    item.querySelector('.bg-color').addEventListener('input', e => {
+      mod.bgColor = e.target.value;
+      item.querySelector('.module-preview').innerHTML = modulePreviewSVG(mod);
+      updateModuleColors(mod.id, null, mod.bgColor);
+      renderMatrix();
+    });
+
+    const weightInput = item.querySelector('.mod-weight');
+    const weightDisplay = item.querySelector('.weight-num');
+    weightInput.addEventListener('input', e => {
+      mod.weight = parseInt(e.target.value);
+      weightDisplay.textContent = mod.weight;
+    });
+
+    const removeBtn = item.querySelector('.remove-btn');
+    removeBtn.addEventListener('click', () => {
+      if (state.modules.length <= 1) return;
+      state.modules = state.modules.filter(m => m.id !== mod.id);
+      delete state.grammar[mod.id];
+      Object.keys(state.grammar).forEach(k => {
+        state.grammar[k] = state.grammar[k].filter(id => id !== mod.id);
+      });
+      renderModuleList();
+      renderMatrix();
+      generate();
+    });
+
+    list.appendChild(item);
+  });
+}
+
+function renderMatrix() {
+  const wrap = document.getElementById('matrix-wrap');
+  const mods = state.modules;
+  if (mods.length === 0) { wrap.innerHTML = ''; return; }
+
+  let html = '<table class="matrix-table"><thead><tr><th class="corner">↓from / to→</th>';
+  mods.forEach(m => {
+    html += `<th><div class="mini-preview">${modulePreviewSVG(m, 16)}</div></th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  mods.forEach(fromMod => {
+    html += `<tr><th><div class="mini-preview">${modulePreviewSVG(fromMod, 16)}</div></th>`;
+    mods.forEach(toMod => {
+      const allowed = state.grammar[fromMod.id] && state.grammar[fromMod.id].includes(toMod.id);
+      html += `<td><button class="matrix-cell ${allowed ? 'on' : ''}" data-from="${fromMod.id}" data-to="${toMod.id}"></button></td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.matrix-cell').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const from = btn.dataset.from, to = btn.dataset.to;
+      const arr = state.grammar[from] || [];
+      const idx = arr.indexOf(to);
+      if (idx === -1) {
+        state.grammar[from] = [...arr, to];
+        btn.classList.add('on');
+      } else {
+        state.grammar[from] = arr.filter(id => id !== to);
+        btn.classList.remove('on');
+      }
+    });
+  });
+}
+
+function updateMeta() {
+  const meta = document.getElementById('canvas-meta');
+  meta.innerHTML = `
+    <span class="meta-item">Grid <span class="meta-value">${state.cols} × ${state.rows}</span></span>
+    <span class="meta-item">Pool <span class="meta-value">${state.modules.length} modules</span></span>
+    <span class="meta-item">Noise <span class="meta-value">${state.noiseScale.toFixed(2)}</span></span>
+    <span class="meta-item">Symmetry <span class="meta-value">${state.symmetry}</span></span>
+    <span class="meta-item">Grammar <span class="meta-value">${state.grammarEnabled ? 'on' : 'off'}</span></span>
+    <span class="meta-item">Rotation <span class="meta-value">${state.rotationEnabled ? 'on' : 'off'}</span></span>
+  `;
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportSVG() {
+  const svg = document.getElementById('canvas-svg').cloneNode(true);
+  const overlay = svg.querySelector('#grid-overlay');
+  if (overlay) overlay.remove();
+  const xml = new XMLSerializer().serializeToString(svg);
+  const blob = new Blob([xml], { type: 'image/svg+xml' });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: 'composition.svg'
+  });
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportPNG() {
+  const svgEl = document.getElementById('canvas-svg').cloneNode(true);
+  const overlay = svgEl.querySelector('#grid-overlay');
+  if (overlay) overlay.remove();
+  const xml = new XMLSerializer().serializeToString(svgEl);
+  const blob = new Blob([xml], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const scale = 2;
+    canvas.width = CANVAS_SIZE * scale;
+    canvas.height = CANVAS_SIZE * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(b => {
+      const a = Object.assign(document.createElement('a'), {
+        href: URL.createObjectURL(b),
+        download: 'composition.png'
+      });
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  };
+  img.src = url;
+}
+
+// ============================================================
+// WIRE GLOBAL CONTROLS
+// ============================================================
+function wireControls() {
+  const colsInput = document.getElementById('cols');
+  const rowsInput = document.getElementById('rows');
+  const colsVal = document.getElementById('cols-val');
+  const rowsVal = document.getElementById('rows-val');
+
+  colsInput.addEventListener('input', () => {
+    state.cols = parseInt(colsInput.value);
+    colsVal.textContent = state.cols;
+    generate();
+  });
+  rowsInput.addEventListener('input', () => {
+    state.rows = parseInt(rowsInput.value);
+    rowsVal.textContent = state.rows;
+    generate();
+  });
+
+  document.getElementById('show-grid').addEventListener('change', e => {
+    state.showGrid = e.target.checked;
+    renderGridOverlay();
+  });
+
+  const noiseInput = document.getElementById('noise-scale');
+  const noiseVal = document.getElementById('noise-val');
+  noiseInput.addEventListener('input', () => {
+    state.noiseScale = parseFloat(noiseInput.value);
+    noiseVal.textContent = state.noiseScale.toFixed(2);
+    generate();
+  });
+
+  document.getElementById('symmetry').addEventListener('change', e => {
+    state.symmetry = e.target.value;
+    generate();
+  });
+
+  document.getElementById('rotation').addEventListener('change', e => {
+    state.rotationEnabled = e.target.checked;
+  });
+
+  document.getElementById('grammar-enabled').addEventListener('change', e => {
+    state.grammarEnabled = e.target.checked;
+  });
+
+  document.getElementById('g-all').addEventListener('click', () => {
+    state.modules.forEach(m => { state.grammar[m.id] = state.modules.map(x => x.id); });
+    renderMatrix();
+  });
+  document.getElementById('g-none').addEventListener('click', () => {
+    state.modules.forEach(m => { state.grammar[m.id] = []; });
+    renderMatrix();
+  });
+  document.getElementById('g-identity').addEventListener('click', () => {
+    state.modules.forEach(m => { state.grammar[m.id] = [m.id]; });
+    renderMatrix();
+  });
+
+  document.getElementById('generate').addEventListener('click', generate);
+  document.getElementById('export-svg').addEventListener('click', exportSVG);
+  document.getElementById('export-png').addEventListener('click', exportPNG);
+
+  document.getElementById('add-module').addEventListener('click', () => {
+    const newMod = makeModule('quarterCircle', '#000000', '#ffffff', 1);
+    state.modules.push(newMod);
+    Object.keys(state.grammar).forEach(k => { state.grammar[k].push(newMod.id); });
+    state.grammar[newMod.id] = state.modules.map(m => m.id);
+    renderModuleList();
+    renderMatrix();
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  renderModuleList();
+  renderMatrix();
+  wireControls();
+  generate();
+});
+</script>
+
+</body>
+</html>

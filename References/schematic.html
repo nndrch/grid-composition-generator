@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Grid Composition Generator — Schematic v0.4</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f0f; --surface: #181818; --border: #2a2a2a; --border-accent: #3d3d3d;
+    --label: #555; --text-dim: #666; --text: #999; --text-bright: #ccc;
+    --accent: #e0e0e0; --tag-bg: #1e1e1e;
+  }
+  body { background: var(--bg); font-family: 'IBM Plex Mono', monospace; color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .topbar-title { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-bright); }
+  .topbar-meta  { font-size: 10px; color: var(--label); letter-spacing: 0.05em; }
+  .app { flex: 1; display: flex; overflow: hidden; }
+
+  .sidebar { width: 280px; min-width: 280px; border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; overflow-y: auto; }
+  .section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .section-label { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--label); margin-bottom: 10px; }
+
+  /* Module list */
+  .module-list { display: flex; flex-direction: column; gap: 6px; }
+  .module-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px; background: var(--tag-bg); border: 1px solid var(--border); }
+  .module-preview { width: 36px; height: 36px; flex-shrink: 0; border: 1px solid var(--border-accent); }
+  .module-controls { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .shape-selector { display: flex; gap: 3px; }
+  .shape-btn { width: 22px; height: 22px; background: var(--border); border: 1px solid transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .shape-btn.active { border-color: var(--text-dim); background: #2a2a2a; }
+  .shape-btn svg { width: 13px; height: 13px; }
+  .color-row { display: flex; align-items: center; gap: 8px; }
+  .color-pair { display: flex; align-items: center; gap: 4px; }
+  .color-pair-label { font-size: 8px; color: var(--label); letter-spacing: 0.06em; text-transform: uppercase; }
+  .swatch { width: 20px; height: 14px; border: 1px solid var(--border-accent); flex-shrink: 0; }
+  .weight-row { display: flex; align-items: center; gap: 6px; }
+  .weight-row-label { font-size: 8px; color: var(--label); letter-spacing: 0.06em; text-transform: uppercase; }
+  .schematic-mini-slider { flex: 1; height: 2px; background: var(--border-accent); position: relative; }
+  .schematic-mini-slider::after { content: ''; position: absolute; left: 60%; top: -3px; width: 6px; height: 8px; background: var(--text-dim); }
+  .weight-num { font-size: 10px; color: var(--text-bright); width: 12px; text-align: right; }
+  .remove-btn { width: 14px; height: 14px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-top: 1px; }
+  .add-btn { width: 100%; margin-top: 8px; padding: 7px; background: transparent; border: 1px dashed var(--border-accent); color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+
+  /* Sliders */
+  .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .slider-row:last-child { margin-bottom: 0; }
+  .slider-label { font-size: 9px; color: var(--text-dim); width: 38px; flex-shrink: 0; letter-spacing: 0.05em; }
+  .schematic-slider { flex: 1; height: 2px; background: var(--border-accent); position: relative; }
+  .schematic-slider::after { content: ''; position: absolute; left: 38%; top: -4px; width: 8px; height: 10px; background: var(--text-dim); }
+  .slider-value { font-size: 10px; color: var(--text-bright); width: 32px; text-align: right; flex-shrink: 0; }
+
+  /* Select */
+  .select-row { display: flex; align-items: center; justify-content: space-between; }
+  .select-label { font-size: 10px; color: var(--text); letter-spacing: 0.05em; }
+  .schematic-select { font-size: 10px; color: var(--text-bright); padding: 4px 8px; background: var(--tag-bg); border: 1px solid var(--border-accent); }
+
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+  .toggle-label { font-size: 10px; color: var(--text); letter-spacing: 0.05em; }
+  .schematic-toggle { width: 30px; height: 15px; border: 1px solid var(--border-accent); border-radius: 8px; background: var(--tag-bg); position: relative; flex-shrink: 0; }
+  .schematic-toggle.on { background: #2a2a2a; border-color: var(--text-dim); }
+  .schematic-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 9px; height: 9px; background: var(--text-dim); border-radius: 50%; }
+  .schematic-toggle.on::after { left: 17px; background: var(--accent); }
+
+  /* Grammar matrix */
+  .grammar-section { padding-bottom: 14px; }
+  .grammar-toggle-row { margin-bottom: 10px; }
+  .matrix-help { font-size: 8px; color: var(--label); margin-bottom: 8px; line-height: 1.5; letter-spacing: 0.04em; }
+  .matrix-table { border-collapse: collapse; margin: 0 auto; }
+  .matrix-table th, .matrix-table td { width: 26px; height: 26px; padding: 2px; text-align: center; }
+  .matrix-table th { background: transparent; }
+  .matrix-table .mini-preview { width: 18px; height: 18px; display: block; margin: 0 auto; border: 1px solid var(--border-accent); }
+  .matrix-table .corner { color: var(--label); font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .matrix-cell { width: 18px; height: 18px; border: 1px solid var(--border); background: var(--tag-bg); display: inline-block; cursor: pointer; }
+  .matrix-cell.on { background: var(--text-dim); border-color: var(--text-dim); }
+  .matrix-cell.on::after { content: '●'; color: var(--accent); font-size: 10px; line-height: 16px; }
+  .matrix-actions { display: flex; gap: 4px; margin-top: 10px; justify-content: center; }
+  .matrix-action { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); padding: 4px 6px; border: 1px solid var(--border); background: transparent; cursor: pointer; }
+
+  /* Buttons */
+  .btn-primary { width: 100%; padding: 10px; background: var(--accent); color: #000; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; border: none; cursor: pointer; margin-bottom: 8px; font-weight: 500; }
+  .btn-secondary { width: 100%; padding: 8px; background: transparent; color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid var(--border-accent); cursor: pointer; margin-bottom: 6px; }
+  .btn-secondary:last-child { margin-bottom: 0; }
+
+  /* Canvas */
+  .canvas-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); padding: 32px; gap: 16px; }
+  .canvas-frame { position: relative; }
+  .canvas-label { position: absolute; top: -22px; left: 0; font-size: 9px; color: var(--label); letter-spacing: 0.12em; text-transform: uppercase; }
+  .canvas-svg-wrap { border: 1px solid var(--border-accent); display: block; }
+  .canvas-meta { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; max-width: 480px; }
+  .meta-item { font-size: 9px; color: var(--label); letter-spacing: 0.1em; text-transform: uppercase; }
+  .meta-value { color: var(--text-dim); margin-left: 6px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-title">Grid Composition Generator</span>
+  <span class="topbar-meta">Schematic v0.4 — pool · noise · weights · symmetry · grammar</span>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+
+    <!-- Module pool -->
+    <div class="section">
+      <div class="section-label">Module pool</div>
+      <div class="module-list">
+
+        <div class="module-item">
+          <svg class="module-preview" viewBox="0 0 36 36"><rect width="36" height="36" fill="#e63946"/><path d="M0,0 L36,0 A36,36 0 0 1 0,36 Z" fill="#111"/></svg>
+          <div class="module-controls">
+            <div class="shape-selector">
+              <div class="shape-btn active"><svg viewBox="0 0 13 13"><path d="M0,0 L13,0 A13,13 0 0 1 0,13 Z" fill="#999"/></svg></div>
+              <div class="shape-btn"><svg viewBox="0 0 13 13"><rect width="13" height="13" fill="#999"/></svg></div>
+              <div class="shape-btn"><svg viewBox="0 0 13 13"><polygon points="0,0 13,0 0,13" fill="#999"/></svg></div>
+            </div>
+            <div class="color-row">
+              <div class="color-pair"><span class="color-pair-label">FG</span><div class="swatch" style="background:#111111;"></div></div>
+              <div class="color-pair"><span class="color-pair-label">BG</span><div class="swatch" style="background:#e63946;"></div></div>
+            </div>
+            <div class="weight-row"><span class="weight-row-label">W</span><div class="schematic-mini-slider"></div><span class="weight-num">3</span></div>
+          </div>
+          <div class="remove-btn">×</div>
+        </div>
+
+        <div class="module-item">
+          <svg class="module-preview" viewBox="0 0 36 36"><rect width="36" height="36" fill="#e63946"/><path d="M0,0 L36,0 A36,36 0 0 1 0,36 Z" fill="#f0ece4" transform="rotate(180,18,18)"/></svg>
+          <div class="module-controls">
+            <div class="shape-selector">
+              <div class="shape-btn active"><svg viewBox="0 0 13 13"><path d="M0,0 L13,0 A13,13 0 0 1 0,13 Z" fill="#999"/></svg></div>
+              <div class="shape-btn"><svg viewBox="0 0 13 13"><rect width="13" height="13" fill="#999"/></svg></div>
+              <div class="shape-btn"><svg viewBox="0 0 13 13"><polygon points="0,0 13,0 0,13" fill="#999"/></svg></div>
+            </div>
+            <div class="color-row">
+              <div class="color-pair"><span class="color-pair-label">FG</span><div class="swatch" style="background:#f0ece4;"></div></div>
+              <div class="color-pair"><span class="color-pair-label">BG</span><div class="swatch" style="background:#e63946;"></div></div>
+            </div>
+            <div class="weight-row"><span class="weight-row-label">W</span><div class="schematic-mini-slider"></div><span class="weight-num">3</span></div>
+          </div>
+          <div class="remove-btn">×</div>
+        </div>
+
+        <div class="module-item">
+          <svg class="module-preview" viewBox="0 0 36 36"><rect width="36" height="36" fill="#1a1a1a"/><rect width="36" height="36" fill="#f0ece4"/></svg>
+          <div class="module-controls">
+            <div class="shape-selector">
+              <div class="shape-btn"><svg viewBox="0 0 13 13"><path d="M0,0 L13,0 A13,13 0 0 1 0,13 Z" fill="#999"/></svg></div>
+              <div class="shape-btn active"><svg viewBox="0 0 13 13"><rect width="13" height="13" fill="#999"/></svg></div>
+              <div class="shape-btn"><svg viewBox="0 0 13 13"><polygon points="0,0 13,0 0,13" fill="#999"/></svg></div>
+            </div>
+            <div class="color-row">
+              <div class="color-pair"><span class="color-pair-label">FG</span><div class="swatch" style="background:#f0ece4;"></div></div>
+              <div class="color-pair"><span class="color-pair-label">BG</span><div class="swatch" style="background:#1a1a1a;"></div></div>
+            </div>
+            <div class="weight-row"><span class="weight-row-label">W</span><div class="schematic-mini-slider" style=""></div><span class="weight-num">1</span></div>
+          </div>
+          <div class="remove-btn">×</div>
+        </div>
+
+        <div class="module-item">
+          <svg class="module-preview" viewBox="0 0 36 36"><rect width="36" height="36" fill="#f0ece4"/><polygon points="0,0 36,0 0,36" fill="#1a1a1a"/></svg>
+          <div class="module-controls">
+            <div class="shape-selector">
+              <div class="shape-btn"><svg viewBox="0 0 13 13"><path d="M0,0 L13,0 A13,13 0 0 1 0,13 Z" fill="#999"/></svg></div>
+              <div class="shape-btn"><svg viewBox="0 0 13 13"><rect width="13" height="13" fill="#999"/></svg></div>
+              <div class="shape-btn active"><svg viewBox="0 0 13 13"><polygon points="0,0 13,0 0,13" fill="#999"/></svg></div>
+            </div>
+            <div class="color-row">
+              <div class="color-pair"><span class="color-pair-label">FG</span><div class="swatch" style="background:#1a1a1a;"></div></div>
+              <div class="color-pair"><span class="color-pair-label">BG</span><div class="swatch" style="background:#f0ece4;"></div></div>
+            </div>
+            <div class="weight-row"><span class="weight-row-label">W</span><div class="schematic-mini-slider"></div><span class="weight-num">1</span></div>
+          </div>
+          <div class="remove-btn">×</div>
+        </div>
+
+      </div>
+      <button class="add-btn">+ Add module</button>
+    </div>
+
+    <!-- Grid -->
+    <div class="section">
+      <div class="section-label">Grid</div>
+      <div class="slider-row"><span class="slider-label">Cols</span><div class="schematic-slider"></div><span class="slider-value">8</span></div>
+      <div class="slider-row"><span class="slider-label">Rows</span><div class="schematic-slider"></div><span class="slider-value">8</span></div>
+    </div>
+
+    <!-- Generation -->
+    <div class="section">
+      <div class="section-label">Generation</div>
+      <div class="slider-row" style="margin-bottom:12px;"><span class="slider-label">Noise</span><div class="schematic-slider"></div><span class="slider-value">0.40</span></div>
+      <div class="select-row" style="margin-bottom:8px;"><span class="select-label">Symmetry</span><span class="schematic-select">None ▾</span></div>
+      <div class="toggle-row"><span class="toggle-label">Random rotation</span><div class="schematic-toggle on"></div></div>
+    </div>
+
+    <!-- Grammar -->
+    <div class="section grammar-section">
+      <div class="section-label">Grammar — transitions</div>
+      <div class="toggle-row grammar-toggle-row"><span class="toggle-label">Apply grammar</span><div class="schematic-toggle on"></div></div>
+      <div class="matrix-help">Rows = from. Cols = to. Each cell allows or blocks one transition.</div>
+
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th class="corner">↓ from / to →</th>
+            <th><svg class="mini-preview" viewBox="0 0 18 18"><rect width="18" height="18" fill="#e63946"/><path d="M0,0 L18,0 A18,18 0 0 1 0,18 Z" fill="#111"/></svg></th>
+            <th><svg class="mini-preview" viewBox="0 0 18 18"><rect width="18" height="18" fill="#e63946"/><path d="M0,0 L18,0 A18,18 0 0 1 0,18 Z" fill="#f0ece4" transform="rotate(180,9,9)"/></svg></th>
+            <th><svg class="mini-preview" viewBox="0 0 18 18"><rect width="18" height="18" fill="#1a1a1a"/><rect width="18" height="18" fill="#f0ece4"/></svg></th>
+            <th><svg class="mini-preview" viewBox="0 0 18 18"><rect width="18" height="18" fill="#f0ece4"/><polygon points="0,0 18,0 0,18" fill="#1a1a1a"/></svg></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th><svg class="mini-preview" viewBox="0 0 18 18"><rect width="18" height="18" fill="#e63946"/><path d="M0,0 L18,0 A18,18 0 0 1 0,18 Z" fill="#111"/></svg></th>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+          </tr>
+          <tr>
+            <th><svg class="mini-preview" viewBox="0 0 18 18"><rect width="18" height="18" fill="#e63946"/><path d="M0,0 L18,0 A18,18 0 0 1 0,18 Z" fill="#f0ece4" transform="rotate(180,9,9)"/></svg></th>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell"></div></td>
+          </tr>
+          <tr>
+            <th><svg class="mini-preview" viewBox="0 0 18 18"><rect width="18" height="18" fill="#1a1a1a"/><rect width="18" height="18" fill="#f0ece4"/></svg></th>
+            <td><div class="matrix-cell"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+          </tr>
+          <tr>
+            <th><svg class="mini-preview" viewBox="0 0 18 18"><rect width="18" height="18" fill="#f0ece4"/><polygon points="0,0 18,0 0,18" fill="#1a1a1a"/></svg></th>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+            <td><div class="matrix-cell on"></div></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="matrix-actions">
+        <button class="matrix-action">All on</button>
+        <button class="matrix-action">All off</button>
+        <button class="matrix-action">Identity</button>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="section" style="border-bottom:none;">
+      <div class="section-label">Actions</div>
+      <button class="btn-primary">↻ Generate</button>
+      <button class="btn-secondary">↓ Export PDF</button>
+      <button class="btn-secondary">↓ Export SVG</button>
+    </div>
+
+  </aside>
+
+  <!-- Canvas -->
+  <main class="canvas-area">
+    <div class="canvas-frame">
+      <span class="canvas-label">Preview — 8×8 with grammar applied (red arcs cluster, accents punctuate)</span>
+      <div class="canvas-svg-wrap">
+        <svg width="480" height="480" viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg">
+          <!-- 8x8 sample composition demonstrating grammar effect: red arcs dominate in horizontal bands -->
+          <!-- Cell size: 60x60 -->
+
+          <!-- Row 0 -->
+          <rect x="0"   y="0" width="60" height="60" fill="#e63946"/><path d="M0,0 L60,0 A60,60 0 0 1 0,60 Z" fill="#111"/>
+          <rect x="60"  y="0" width="60" height="60" fill="#e63946"/><path d="M60,60 A60,60 0 0 1 120,0 L120,60 Z" fill="#f0ece4"/>
+          <rect x="120" y="0" width="60" height="60" fill="#e63946"/><path d="M120,0 L180,0 A60,60 0 0 1 120,60 Z" fill="#111"/>
+          <rect x="180" y="0" width="60" height="60" fill="#e63946"/><path d="M240,0 A60,60 0 0 1 180,60 L180,0 Z" fill="#f0ece4"/>
+          <rect x="240" y="0" width="60" height="60" fill="#f0ece4"/><polygon points="240,0 300,0 240,60" fill="#1a1a1a"/>
+          <rect x="300" y="0" width="60" height="60" fill="#1a1a1a"/><rect x="300" y="0" width="60" height="60" fill="#f0ece4"/>
+          <rect x="360" y="0" width="60" height="60" fill="#e63946"/><path d="M360,0 L420,0 A60,60 0 0 1 360,60 Z" fill="#111"/>
+          <rect x="420" y="0" width="60" height="60" fill="#e63946"/><path d="M420,60 A60,60 0 0 1 480,0 L480,60 Z" fill="#f0ece4"/>
+
+          <!-- Row 1 -->
+          <rect x="0"   y="60" width="60" height="60" fill="#e63946"/><path d="M0,120 A60,60 0 0 1 60,60 L60,120 Z" fill="#111"/>
+          <rect x="60"  y="60" width="60" height="60" fill="#e63946"/><path d="M60,60 L120,60 A60,60 0 0 1 60,120 Z" fill="#f0ece4"/>
+          <rect x="120" y="60" width="60" height="60" fill="#1a1a1a"/><rect x="120" y="60" width="60" height="60" fill="#f0ece4"/>
+          <rect x="180" y="60" width="60" height="60" fill="#e63946"/><path d="M240,60 A60,60 0 0 1 180,120 L180,60 Z" fill="#111"/>
+          <rect x="240" y="60" width="60" height="60" fill="#e63946"/><path d="M240,60 L300,60 A60,60 0 0 1 240,120 Z" fill="#f0ece4"/>
+          <rect x="300" y="60" width="60" height="60" fill="#e63946"/><path d="M300,120 A60,60 0 0 1 360,60 L360,120 Z" fill="#111"/>
+          <rect x="360" y="60" width="60" height="60" fill="#f0ece4"/><polygon points="360,60 420,60 360,120" fill="#1a1a1a"/>
+          <rect x="420" y="60" width="60" height="60" fill="#e63946"/><path d="M420,60 L480,60 A60,60 0 0 1 420,120 Z" fill="#f0ece4"/>
+
+          <!-- Row 2 -->
+          <rect x="0"   y="120" width="60" height="60" fill="#f0ece4"/><polygon points="0,120 60,120 0,180" fill="#1a1a1a"/>
+          <rect x="60"  y="120" width="60" height="60" fill="#1a1a1a"/><rect x="60" y="120" width="60" height="60" fill="#f0ece4"/>
+          <rect x="120" y="120" width="60" height="60" fill="#e63946"/><path d="M120,120 L180,120 A60,60 0 0 1 120,180 Z" fill="#111"/>
+          <rect x="180" y="120" width="60" height="60" fill="#e63946"/><path d="M240,120 A60,60 0 0 1 180,180 L180,120 Z" fill="#f0ece4"/>
+          <rect x="240" y="120" width="60" height="60" fill="#e63946"/><path d="M240,120 L300,120 A60,60 0 0 1 240,180 Z" fill="#111"/>
+          <rect x="300" y="120" width="60" height="60" fill="#e63946"/><path d="M300,180 A60,60 0 0 1 360,120 L360,180 Z" fill="#f0ece4"/>
+          <rect x="360" y="120" width="60" height="60" fill="#e63946"/><path d="M360,120 L420,120 A60,60 0 0 1 360,180 Z" fill="#111"/>
+          <rect x="420" y="120" width="60" height="60" fill="#f0ece4"/><polygon points="420,120 480,120 480,180" fill="#1a1a1a"/>
+
+          <!-- Row 3 -->
+          <rect x="0"   y="180" width="60" height="60" fill="#e63946"/><path d="M60,180 A60,60 0 0 1 0,240 L0,180 Z" fill="#111"/>
+          <rect x="60"  y="180" width="60" height="60" fill="#e63946"/><path d="M60,180 L120,180 A60,60 0 0 1 60,240 Z" fill="#f0ece4"/>
+          <rect x="120" y="180" width="60" height="60" fill="#e63946"/><path d="M120,240 A60,60 0 0 1 180,180 L180,240 Z" fill="#111"/>
+          <rect x="180" y="180" width="60" height="60" fill="#e63946"/><path d="M180,180 L240,180 A60,60 0 0 1 180,240 Z" fill="#f0ece4"/>
+          <rect x="240" y="180" width="60" height="60" fill="#1a1a1a"/><rect x="240" y="180" width="60" height="60" fill="#f0ece4"/>
+          <rect x="300" y="180" width="60" height="60" fill="#e63946"/><path d="M360,180 A60,60 0 0 1 300,240 L300,180 Z" fill="#111"/>
+          <rect x="360" y="180" width="60" height="60" fill="#e63946"/><path d="M360,180 L420,180 A60,60 0 0 1 360,240 Z" fill="#f0ece4"/>
+          <rect x="420" y="180" width="60" height="60" fill="#e63946"/><path d="M420,240 A60,60 0 0 1 480,180 L480,240 Z" fill="#111"/>
+
+          <!-- Row 4 -->
+          <rect x="0"   y="240" width="60" height="60" fill="#e63946"/><path d="M0,240 L60,240 A60,60 0 0 1 0,300 Z" fill="#f0ece4"/>
+          <rect x="60"  y="240" width="60" height="60" fill="#f0ece4"/><polygon points="60,300 120,240 120,300" fill="#1a1a1a"/>
+          <rect x="120" y="240" width="60" height="60" fill="#1a1a1a"/><rect x="120" y="240" width="60" height="60" fill="#f0ece4"/>
+          <rect x="180" y="240" width="60" height="60" fill="#e63946"/><path d="M180,240 L240,240 A60,60 0 0 1 180,300 Z" fill="#111"/>
+          <rect x="240" y="240" width="60" height="60" fill="#e63946"/><path d="M240,300 A60,60 0 0 1 300,240 L300,300 Z" fill="#f0ece4"/>
+          <rect x="300" y="240" width="60" height="60" fill="#e63946"/><path d="M300,240 L360,240 A60,60 0 0 1 300,300 Z" fill="#111"/>
+          <rect x="360" y="240" width="60" height="60" fill="#e63946"/><path d="M420,240 A60,60 0 0 1 360,300 L360,240 Z" fill="#f0ece4"/>
+          <rect x="420" y="240" width="60" height="60" fill="#e63946"/><path d="M420,240 L480,240 A60,60 0 0 1 420,300 Z" fill="#111"/>
+
+          <!-- Row 5 -->
+          <rect x="0"   y="300" width="60" height="60" fill="#e63946"/><path d="M0,360 A60,60 0 0 1 60,300 L60,360 Z" fill="#f0ece4"/>
+          <rect x="60"  y="300" width="60" height="60" fill="#e63946"/><path d="M60,300 L120,300 A60,60 0 0 1 60,360 Z" fill="#111"/>
+          <rect x="120" y="300" width="60" height="60" fill="#f0ece4"/><polygon points="120,360 180,300 180,360" fill="#1a1a1a"/>
+          <rect x="180" y="300" width="60" height="60" fill="#1a1a1a"/><rect x="180" y="300" width="60" height="60" fill="#f0ece4"/>
+          <rect x="240" y="300" width="60" height="60" fill="#e63946"/><path d="M240,360 A60,60 0 0 1 300,300 L300,360 Z" fill="#111"/>
+          <rect x="300" y="300" width="60" height="60" fill="#e63946"/><path d="M300,300 L360,300 A60,60 0 0 1 300,360 Z" fill="#f0ece4"/>
+          <rect x="360" y="300" width="60" height="60" fill="#e63946"/><path d="M420,300 A60,60 0 0 1 360,360 L360,300 Z" fill="#111"/>
+          <rect x="420" y="300" width="60" height="60" fill="#e63946"/><path d="M420,300 L480,300 A60,60 0 0 1 420,360 Z" fill="#f0ece4"/>
+
+          <!-- Row 6 -->
+          <rect x="0"   y="360" width="60" height="60" fill="#1a1a1a"/><rect x="0" y="360" width="60" height="60" fill="#f0ece4"/>
+          <rect x="60"  y="360" width="60" height="60" fill="#e63946"/><path d="M60,360 L120,360 A60,60 0 0 1 60,420 Z" fill="#111"/>
+          <rect x="120" y="360" width="60" height="60" fill="#e63946"/><path d="M180,360 A60,60 0 0 1 120,420 L120,360 Z" fill="#f0ece4"/>
+          <rect x="180" y="360" width="60" height="60" fill="#e63946"/><path d="M180,360 L240,360 A60,60 0 0 1 180,420 Z" fill="#111"/>
+          <rect x="240" y="360" width="60" height="60" fill="#e63946"/><path d="M240,420 A60,60 0 0 1 300,360 L300,420 Z" fill="#f0ece4"/>
+          <rect x="300" y="360" width="60" height="60" fill="#f0ece4"/><polygon points="300,360 360,360 300,420" fill="#1a1a1a"/>
+          <rect x="360" y="360" width="60" height="60" fill="#e63946"/><path d="M360,360 L420,360 A60,60 0 0 1 360,420 Z" fill="#111"/>
+          <rect x="420" y="360" width="60" height="60" fill="#e63946"/><path d="M420,420 A60,60 0 0 1 480,360 L480,420 Z" fill="#f0ece4"/>
+
+          <!-- Row 7 -->
+          <rect x="0"   y="420" width="60" height="60" fill="#e63946"/><path d="M0,420 L60,420 A60,60 0 0 1 0,480 Z" fill="#111"/>
+          <rect x="60"  y="420" width="60" height="60" fill="#e63946"/><path d="M60,480 A60,60 0 0 1 120,420 L120,480 Z" fill="#f0ece4"/>
+          <rect x="120" y="420" width="60" height="60" fill="#e63946"/><path d="M120,420 L180,420 A60,60 0 0 1 120,480 Z" fill="#111"/>
+          <rect x="180" y="420" width="60" height="60" fill="#f0ece4"/><polygon points="180,480 240,420 240,480" fill="#1a1a1a"/>
+          <rect x="240" y="420" width="60" height="60" fill="#1a1a1a"/><rect x="240" y="420" width="60" height="60" fill="#f0ece4"/>
+          <rect x="300" y="420" width="60" height="60" fill="#e63946"/><path d="M300,420 L360,420 A60,60 0 0 1 300,480 Z" fill="#f0ece4"/>
+          <rect x="360" y="420" width="60" height="60" fill="#e63946"/><path d="M360,480 A60,60 0 0 1 420,420 L420,480 Z" fill="#111"/>
+          <rect x="420" y="420" width="60" height="60" fill="#e63946"/><path d="M420,420 L480,420 A60,60 0 0 1 420,480 Z" fill="#f0ece4"/>
+
+          <!-- grid lines -->
+          <g stroke="#00000022" stroke-width="0.5">
+            <line x1="60" y1="0" x2="60" y2="480"/><line x1="120" y1="0" x2="120" y2="480"/><line x1="180" y1="0" x2="180" y2="480"/><line x1="240" y1="0" x2="240" y2="480"/><line x1="300" y1="0" x2="300" y2="480"/><line x1="360" y1="0" x2="360" y2="480"/><line x1="420" y1="0" x2="420" y2="480"/>
+            <line x1="0" y1="60" x2="480" y2="60"/><line x1="0" y1="120" x2="480" y2="120"/><line x1="0" y1="180" x2="480" y2="180"/><line x1="0" y1="240" x2="480" y2="240"/><line x1="0" y1="300" x2="480" y2="300"/><line x1="0" y1="360" x2="480" y2="360"/><line x1="0" y1="420" x2="480" y2="420"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="canvas-meta">
+      <span class="meta-item">Grid <span class="meta-value">8 × 8</span></span>
+      <span class="meta-item">Pool <span class="meta-value">4 modules</span></span>
+      <span class="meta-item">Noise <span class="meta-value">0.40</span></span>
+      <span class="meta-item">Symmetry <span class="meta-value">none</span></span>
+      <span class="meta-item">Grammar <span class="meta-value">on</span></span>
+      <span class="meta-item">Rotation <span class="meta-value">on</span></span>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

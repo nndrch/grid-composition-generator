@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grid Composition Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+
+      <details class="sidebar-section" open>
+        <summary class="section-label">Canvas</summary>
+        <!-- canvas-setup.js will populate this -->
+      </details>
+
+      <details class="sidebar-section" open>
+        <summary class="section-label">Modules</summary>
+        <!-- module-list.js and shape-library.js will populate this -->
+      </details>
+
+      <details class="sidebar-section" open>
+        <summary class="section-label">Grid</summary>
+        <!-- grid-controls.js will populate this -->
+      </details>
+
+      <details class="sidebar-section">
+        <summary class="section-label">Generation</summary>
+        <!-- grammar-matrix.js and generation controls will populate this -->
+      </details>
+
+      <div class="sidebar-section sidebar-section--actions">
+        <button class="btn-primary" id="generate">↻ Generate</button>
+        <button class="btn-secondary" id="randomize">⚂ Randomize all</button>
+        <button class="btn-secondary" id="export-svg">↓ Export SVG</button>
+      </div>
+
+    </aside>
+
+    <main class="canvas-area">
+      <div class="canvas-frame">
+        <svg id="canvas-svg"
+             viewBox="0 0 100 100"
+             xmlns="http://www.w3.org/2000/svg">
+          <g id="cells"></g>
+          <g id="grid-overlay"></g>
+        </svg>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
