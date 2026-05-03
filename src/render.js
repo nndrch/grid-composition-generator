@@ -47,6 +47,8 @@ function buildCell(mod, step, x, y, w, h) {
     class: 'cell',
     transform: `translate(${x},${y})`,
     'data-module-id': mod.id,
+    'data-w': w,
+    'data-h': h,
   });
 
   if (mod.bgColor !== null) {
@@ -109,7 +111,9 @@ export function updateModuleColors(modId) {
       if (mod.bgColor === null) bg.remove();
       else bg.setAttribute('fill', mod.bgColor);
     } else if (mod.bgColor !== null) {
-      const rect = el('rect', { class: 'cell-bg', width: g.__w, height: g.__h, fill: mod.bgColor });
+      const w = g.getAttribute('data-w');
+      const h = g.getAttribute('data-h');
+      const rect = el('rect', { class: 'cell-bg', width: w, height: h, fill: mod.bgColor });
       g.prepend(rect);
     }
     const path = g.querySelector('.cell-shape-path');
