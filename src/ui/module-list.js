@@ -1,11 +1,15 @@
 import state from '../state.js';
-import { getShape, getAllShapes } from '../shapes/index.js';
+import { getShape, getBuiltinShapes, getCustomShapes } from '../shapes/index.js';
+import { makeCustomShapeThumbnail, initShapeLibrary } from './shape-library.js';
 import { updateModuleColors, render } from '../render.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 let _listEl = null;
 let _onModulesChanged = () => {};
+
+// moduleId → warning text (set when a shape is deleted from under a module)
+const _warnings = new Map();
 
 // ── Mini SVG preview (36×36, step 0) ────────────────────────────────────────
 
@@ -32,7 +36,28 @@ function makePreviewSvg(mod) {
     path.setAttribute('stroke-width', mod.strokeWeight);
     path.setAttribute('vector-effect', 'non-scaling-stroke');
     svg.appendChild(path);
+  } else if (shape?.type === 'custom') {
+    const scaleG = document.createElementNS(SVG_NS, 'g');
+    scaleG.setAttribute('transform', `scale(${36 / shape.viewBox.w}, ${36 / shape.viewBox.h})`);
+
+    const parser = new DOMParser();
+    const tempDoc = parser.parseFromString(
+      `<svg xmlns="http://www.w3.org/2000/svg">${shape.svgContent}</svg>`,
+      'image/svg+xml'
+    );
+    const root = tempDoc.documentElement;
+    root.querySelectorAll('*').forEach(node => {
+      node.setAttribute('fill', mod.fgColor ?? 'none');
+      node.setAttribute('stroke', mod.strokeColor ?? 'none');
+      node.setAttribute('stroke-width', mod.strokeWeight);
+      node.setAttribute('vector-effect', 'non-scaling-stroke');
+    });
+    for (const child of [...root.childNodes]) {
+      scaleG.appendChild(document.importNode(child, true));
+    }
+    svg.appendChild(scaleG);
   }
+
   return svg;
 }
 
@@ -53,6 +78,7 @@ function makeColorControl(labelText, getColor, setColor, previewEl, mod) {
   const inp = document.createElement('input');
   inp.type = 'color';
   inp.value = getColor() ?? '#000000';
+  inp.setAttribute('aria-label', `${labelText} color`);
   if (getColor() === null) inp.classList.add('is-null');
 
   const nullBtn = document.createElement('button');
@@ -60,6 +86,7 @@ function makeColorControl(labelText, getColor, setColor, previewEl, mod) {
   nullBtn.type = 'button';
   nullBtn.textContent = 'Ø';
   nullBtn.title = 'Set to transparent / none';
+  nullBtn.setAttribute('aria-label', `Set ${labelText} to none`);
 
   inp.addEventListener('input', () => {
     setColor(inp.value);
@@ -83,6 +110,33 @@ function makeColorControl(labelText, getColor, setColor, previewEl, mod) {
 
 // ── Shape picker dropdown ────────────────────────────────────────────────────
 
+function makeShapeOptionEl(shape) {
+  const opt = document.createElement('button');
+  opt.type = 'button';
+  opt.className = 'shape-option';
+  opt.dataset.shapeId = shape.id;
+
+  if (shape.type === 'builtin') {
+    const mini = document.createElementNS(SVG_NS, 'svg');
+    mini.setAttribute('viewBox', '0 0 24 24');
+    mini.setAttribute('width', '24'); mini.setAttribute('height', '24');
+    const p = document.createElementNS(SVG_NS, 'path');
+    p.setAttribute('d', shape.pathFn(24, 24, 0));
+    p.setAttribute('fill', '#888');
+    mini.appendChild(p);
+    opt.appendChild(mini);
+  } else if (shape.type === 'custom') {
+    const mini = makeCustomShapeThumbnail(shape, 24);
+    opt.appendChild(mini);
+  }
+
+  const name = document.createElement('span');
+  name.textContent = shape.name;
+  opt.appendChild(name);
+
+  return opt;
+}
+
 function makeShapePicker(mod, previewEl) {
   const row = document.createElement('div');
   row.className = 'shape-row';
@@ -98,44 +152,45 @@ function makeShapePicker(mod, previewEl) {
 
   const buildOptions = () => {
     dropdown.innerHTML = '';
-    for (const shape of getAllShapes()) {
-      const opt = document.createElement('button');
-      opt.type = 'button';
-      opt.className = 'shape-option' + (shape.id === mod.shapeId ? ' is-active' : '');
 
-      if (shape.type === 'builtin') {
-        const mini = document.createElementNS(SVG_NS, 'svg');
-        mini.setAttribute('viewBox', '0 0 24 24');
-        mini.setAttribute('width', '24'); mini.setAttribute('height', '24');
-        const p = document.createElementNS(SVG_NS, 'path');
-        p.setAttribute('d', shape.pathFn(24, 24, 0));
-        p.setAttribute('fill', '#888');
-        mini.appendChild(p);
-        opt.appendChild(mini);
+    const builtins = getBuiltinShapes();
+    const customs  = getCustomShapes();
+
+    const addGroup = (label, shapes) => {
+      if (shapes.length === 0) return;
+      const header = document.createElement('div');
+      header.className = 'shape-dropdown-group';
+      header.textContent = label;
+      dropdown.appendChild(header);
+
+      for (const shape of shapes) {
+        const opt = makeShapeOptionEl(shape);
+        if (shape.id === mod.shapeId) opt.classList.add('is-active');
+        opt.addEventListener('click', () => {
+          mod.shapeId = shape.id;
+          btn.textContent = shape.name + ' ▾';
+          dropdown.hidden = true;
+          // Clear fallback warning if the user picks a new shape
+          _warnings.delete(mod.id);
+          row.closest('.module-item')?.querySelector('.module-warning')?.remove();
+          dropdown.querySelectorAll('.shape-option').forEach(o => o.classList.remove('is-active'));
+          opt.classList.add('is-active');
+          refreshPreview(previewEl, mod);
+          render();
+        });
+        dropdown.appendChild(opt);
       }
+    };
 
-      const name = document.createElement('span');
-      name.textContent = shape.name;
-      opt.appendChild(name);
-
-      opt.addEventListener('click', () => {
-        mod.shapeId = shape.id;
-        btn.textContent = shape.name + ' ▾';
-        dropdown.hidden = true;
-        dropdown.querySelectorAll('.shape-option').forEach(o => o.classList.remove('is-active'));
-        opt.classList.add('is-active');
-        refreshPreview(previewEl, mod);
-        render();
-      });
-
-      dropdown.appendChild(opt);
-    }
+    addGroup('Built-in', builtins);
+    addGroup('Custom', customs);
   };
 
   buildOptions();
 
   btn.addEventListener('click', e => {
     e.stopPropagation();
+    buildOptions(); // refresh options in case customs changed
     dropdown.hidden = !dropdown.hidden;
   });
 
@@ -143,7 +198,7 @@ function makeShapePicker(mod, previewEl) {
 
   row.appendChild(btn);
   row.appendChild(dropdown);
-  return { el: row, refreshOptions: buildOptions };
+  return { el: row };
 }
 
 // ── Full module item ─────────────────────────────────────────────────────────
@@ -165,6 +220,14 @@ function buildModuleItem(mod) {
   // Shape picker
   const { el: shapeRow } = makeShapePicker(mod, preview);
   controls.appendChild(shapeRow);
+
+  // Fallback warning (shown when a custom shape was deleted)
+  if (_warnings.has(mod.id)) {
+    const warn = document.createElement('p');
+    warn.className = 'module-warning';
+    warn.textContent = _warnings.get(mod.id);
+    controls.appendChild(warn);
+  }
 
   // Color row
   const colorRow = document.createElement('div');
@@ -239,6 +302,7 @@ function buildModuleItem(mod) {
     const idx = state.modules.indexOf(mod);
     if (idx !== -1) {
       state.modules.splice(idx, 1);
+      _warnings.delete(mod.id);
       delete state.grammar[mod.id];
       for (const key of Object.keys(state.grammar)) {
         state.grammar[key] = state.grammar[key].filter(id => id !== mod.id);
@@ -259,7 +323,6 @@ function refresh() {
   for (const mod of state.modules) {
     _listEl.appendChild(buildModuleItem(mod));
   }
-  // enforce remove-btn disabled state
   _listEl.querySelectorAll('.remove-btn').forEach(btn => {
     btn.disabled = state.modules.length <= 1;
   });
@@ -295,6 +358,28 @@ export function initModuleList(sectionEl, { onModulesChanged }) {
     _onModulesChanged();
   });
   content.appendChild(addBtn);
+
+  // Shape library (below pool list, inside Modules section)
+  initShapeLibrary(content, {
+    onShapeRegistered: () => {
+      // Picker dropdowns rebuild on open (buildOptions called on click), nothing else needed
+    },
+    onShapeDeleted: (shapeId) => {
+      // Fall back any module using the deleted shape to builtin:square
+      let affected = false;
+      for (const mod of state.modules) {
+        if (mod.shapeId === shapeId) {
+          mod.shapeId = 'builtin:square';
+          _warnings.set(mod.id, 'Shape deleted — fell back to Square');
+          affected = true;
+        }
+      }
+      if (affected) {
+        refresh();
+        render();
+      }
+    },
+  });
 
   sectionEl.appendChild(content);
   refresh();

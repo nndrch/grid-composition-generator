@@ -9,6 +9,45 @@ function el(tag, attrs = {}) {
   return node;
 }
 
+// Step transforms for custom shapes — pure mirror operations, zero overflow (PRD §5.4)
+const STEP_TRANSFORMS = [
+  null,                                    // step 0: identity
+  (w)    => `translate(${w},0) scale(-1,1)`,
+  (w, h) => `translate(${w},${h}) scale(-1,-1)`,
+  (_w, h) => `translate(0,${h}) scale(1,-1)`,
+];
+
+function buildCustomShapeGroup(shape, mod, w, h, step) {
+  const outerG = el('g', { class: 'cell-shape-custom' });
+  const tx = STEP_TRANSFORMS[step];
+  if (tx) outerG.setAttribute('transform', tx(w, h));
+
+  const scaleG = el('g', {
+    transform: `scale(${w / shape.viewBox.w}, ${h / shape.viewBox.h})`,
+  });
+
+  const parser = new DOMParser();
+  const tempDoc = parser.parseFromString(
+    `<svg xmlns="http://www.w3.org/2000/svg">${shape.svgContent}</svg>`,
+    'image/svg+xml'
+  );
+  const svgRoot = tempDoc.documentElement;
+
+  svgRoot.querySelectorAll('*').forEach(node => {
+    node.setAttribute('fill', mod.fgColor ?? 'none');
+    node.setAttribute('stroke', mod.strokeColor ?? 'none');
+    node.setAttribute('stroke-width', mod.strokeWeight);
+    node.setAttribute('vector-effect', 'non-scaling-stroke');
+  });
+
+  for (const child of [...svgRoot.childNodes]) {
+    scaleG.appendChild(document.importNode(child, true));
+  }
+
+  outerG.appendChild(scaleG);
+  return outerG;
+}
+
 export function render() {
   const svg = document.getElementById('canvas-svg');
   const vw = state.aspectWidth  * 100;
@@ -51,6 +90,7 @@ function buildCell(mod, step, x, y, w, h) {
     'data-module-id': mod.id,
     'data-w': w,
     'data-h': h,
+    'data-step': step,
   });
 
   if (mod.bgColor !== null) {
@@ -73,8 +113,9 @@ function buildCell(mod, step, x, y, w, h) {
         'stroke-width': mod.strokeWeight,
         'vector-effect': 'non-scaling-stroke',
       }));
+    } else if (shape.type === 'custom') {
+      g.appendChild(buildCustomShapeGroup(shape, mod, w, h, step));
     }
-    // custom shape rendering added in Phase 4
   }
 
   return g;
@@ -107,22 +148,35 @@ function renderGridOverlay(vw, vh) {
 export function updateModuleColors(modId) {
   const mod = state.modules.find(m => m.id === modId);
   if (!mod) return;
+  const shape = getShape(mod.shapeId);
+
   document.querySelectorAll(`.cell[data-module-id="${modId}"]`).forEach(g => {
+    const w = parseFloat(g.getAttribute('data-w'));
+    const h = parseFloat(g.getAttribute('data-h'));
+    const step = parseInt(g.getAttribute('data-step') ?? '0', 10);
+
+    // Background rect
     const bg = g.querySelector('.cell-bg');
     if (bg) {
       if (mod.bgColor === null) bg.remove();
       else bg.setAttribute('fill', mod.bgColor);
     } else if (mod.bgColor !== null) {
-      const w = g.getAttribute('data-w');
-      const h = g.getAttribute('data-h');
       const rect = el('rect', { class: 'cell-bg', width: w, height: h, fill: mod.bgColor });
       g.prepend(rect);
     }
-    const path = g.querySelector('.cell-shape-path');
-    if (path) {
-      path.setAttribute('fill', mod.fgColor ?? 'none');
-      path.setAttribute('stroke', mod.strokeColor ?? 'none');
-      path.setAttribute('stroke-width', mod.strokeWeight);
+
+    if (shape?.type === 'builtin') {
+      const path = g.querySelector('.cell-shape-path');
+      if (path) {
+        path.setAttribute('fill', mod.fgColor ?? 'none');
+        path.setAttribute('stroke', mod.strokeColor ?? 'none');
+        path.setAttribute('stroke-width', mod.strokeWeight);
+      }
+    } else if (shape?.type === 'custom') {
+      const existing = g.querySelector('.cell-shape-custom');
+      const newGroup = buildCustomShapeGroup(shape, mod, w, h, step);
+      if (existing) existing.replaceWith(newGroup);
+      else g.appendChild(newGroup);
     }
   });
 }

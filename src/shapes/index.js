@@ -38,4 +38,20 @@ export function getAllShapes() {
   return [...registry.values()];
 }
 
+export function getBuiltinShapes() {
+  return [...registry.values()].filter(s => s.type === 'builtin');
+}
+
+export function getCustomShapes() {
+  return [...registry.values()].filter(s => s.type === 'custom');
+}
+
+export function registerCustomShape(entry) {
+  registry.set(entry.id, entry);
+}
+
+export function removeCustomShape(id) {
+  registry.delete(id);
+}
+
 export { registry };
