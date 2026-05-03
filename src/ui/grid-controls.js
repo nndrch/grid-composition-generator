@@ -32,15 +32,14 @@ function buildStrip(getSizes) {
 
 function buildAxisBlock(label, axis) {
   const isCol = axis === 'col';
-  const getCount     = () => isCol ? state.cols          : state.rows;
-  const getWaveform  = () => isCol ? state.colWaveform   : state.rowWaveform;
-  const getMinWeight = () => isCol ? state.colMinWeight  : state.rowMinWeight;
-  const getMaxWeight = () => isCol ? state.colMaxWeight  : state.rowMaxWeight;
-  const getPeak      = () => isCol ? state.colPeak       : state.rowPeak;
+  const getCount      = () => isCol ? state.cols         : state.rows;
+  const getWaveform   = () => isCol ? state.colWaveform  : state.rowWaveform;
+  const getMaxWeight  = () => isCol ? state.colMaxWeight : state.rowMaxWeight;
+  const getPeak       = () => isCol ? state.colPeak      : state.rowPeak;
   const getTotalUnits = () => (isCol ? state.aspectWidth : state.aspectHeight) * 100;
 
   const recomputeSizes = () => {
-    const sizes = computeTrackSizes(getCount(), getWaveform(), getMinWeight(), getMaxWeight(), getPeak(), getTotalUnits());
+    const sizes = computeTrackSizes(getCount(), getWaveform(), getMaxWeight(), getPeak(), getTotalUnits());
     if (isCol) state._colSizes = sizes; else state._rowSizes = sizes;
     return sizes;
   };
@@ -64,35 +63,41 @@ function buildAxisBlock(label, axis) {
   });
   block.appendChild(count.el);
 
-  // Distribution select
+  // Distribution toggle (Locked / Unlocked)
   const distRow = document.createElement('div');
   distRow.className = 'select-row';
   const distLbl = document.createElement('span');
   distLbl.className = 'select-label';
   distLbl.textContent = 'Distribution';
-  const distSel = document.createElement('select');
-  [['locked', 'Locked'], ['sawtooth', 'Sawtooth'], ['sine', 'Sine']].forEach(([val, txt]) => {
-    const opt = document.createElement('option');
-    opt.value = val; opt.textContent = txt;
-    if (val === getWaveform()) opt.selected = true;
-    distSel.appendChild(opt);
+
+  const distToggle = document.createElement('button');
+  distToggle.type = 'button';
+  distToggle.className = 'dist-toggle-btn';
+
+  const syncToggle = () => {
+    const wf = getWaveform();
+    const locked = wf === 'locked';
+    distToggle.textContent = locked ? 'Locked' : 'Unlocked';
+    distToggle.classList.toggle('is-active', !locked);
+    maxInput.setDisabled(locked);
+    peakInput.setDisabled(locked);
+  };
+
+  distToggle.addEventListener('click', () => {
+    const wf = getWaveform() === 'locked' ? 'unlocked' : 'locked';
+    if (isCol) state.colWaveform = wf; else state.rowWaveform = wf;
+    syncToggle();
+    recomputeSizes(); _onRender(); stripAPI.refresh();
   });
+
   distRow.appendChild(distLbl);
-  distRow.appendChild(distSel);
+  distRow.appendChild(distToggle);
   block.appendChild(distRow);
 
-  // Min / Max / Peak
-  const minInput = createNumericInput({
-    label: 'Min weight', min: 1, max: 10, step: 1, value: getMinWeight(),
-    disabled: getWaveform() === 'locked',
-    onChange: v => {
-      if (isCol) state.colMinWeight = v; else state.rowMinWeight = v;
-      recomputeSizes(); _onRender(); stripAPI.refresh();
-    },
-  });
-
+  // Max / Peak
   const maxInput = createNumericInput({
     label: 'Max weight', min: 1, max: 10, step: 1, value: getMaxWeight(),
+    disabled: getWaveform() === 'locked',
     onChange: v => {
       if (isCol) state.colMaxWeight = v; else state.rowMaxWeight = v;
       recomputeSizes(); _onRender(); stripAPI.refresh();
@@ -108,18 +113,8 @@ function buildAxisBlock(label, axis) {
     },
   });
 
-  block.appendChild(minInput.el);
   block.appendChild(maxInput.el);
   block.appendChild(peakInput.el);
-
-  distSel.addEventListener('change', () => {
-    const wf = distSel.value;
-    if (isCol) state.colWaveform = wf; else state.rowWaveform = wf;
-    const locked = wf === 'locked';
-    minInput.setDisabled(locked);
-    peakInput.setDisabled(locked);
-    recomputeSizes(); _onRender(); stripAPI.refresh();
-  });
 
   // Preview strip
   const stripAPI = buildStrip(() => {
@@ -128,15 +123,13 @@ function buildAxisBlock(label, axis) {
   });
   block.appendChild(stripAPI.el);
 
+  syncToggle();
+
   const refresh = () => {
     count.setValue(getCount());
-    distSel.value = getWaveform();
-    minInput.setValue(getMinWeight());
     maxInput.setValue(getMaxWeight());
     peakInput.setValue(getPeak());
-    const locked = getWaveform() === 'locked';
-    minInput.setDisabled(locked);
-    peakInput.setDisabled(locked);
+    syncToggle();
     recomputeSizes();
     stripAPI.refresh();
   };

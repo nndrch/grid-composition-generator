@@ -5,14 +5,12 @@ const state = {
 
   cols: 8,
   colWaveform:  'locked',
-  colMinWeight: 1,
-  colMaxWeight: 1,
+  colMaxWeight: 4,
   colPeak:      0.5,
 
   rows: 8,
   rowWaveform:  'locked',
-  rowMinWeight: 1,
-  rowMaxWeight: 1,
+  rowMaxWeight: 4,
   rowPeak:      0.5,
 
   _colSizes: [],

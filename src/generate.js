@@ -12,10 +12,10 @@ export function generate() {
   const totalH = state.aspectHeight * 100;
 
   state._colSizes = computeTrackSizes(
-    state.cols, state.colWaveform, state.colMinWeight, state.colMaxWeight, state.colPeak, totalW
+    state.cols, state.colWaveform, state.colMaxWeight, state.colPeak, totalW
   );
   state._rowSizes = computeTrackSizes(
-    state.rows, state.rowWaveform, state.rowMinWeight, state.rowMaxWeight, state.rowPeak, totalH
+    state.rows, state.rowWaveform, state.rowMaxWeight, state.rowPeak, totalH
   );
 
   const sourceCols = (state.symmetry === 'mirrorX' || state.symmetry === 'fourFold')

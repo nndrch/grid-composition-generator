@@ -16,7 +16,7 @@ const randFloat = (lo, hi, dp = 2) => parseFloat((Math.random() * (hi - lo) + lo
 const randPick  = arr => arr[Math.floor(Math.random() * arr.length)];
 
 export function randomizeAll() {
-  const WAVEFORMS = ['locked', 'sawtooth', 'sine'];
+  const WAVEFORMS = ['locked', 'unlocked'];
   const SYMMETRIES = ['none', 'mirrorX', 'mirrorY', 'fourFold'];
 
   // Grid counts
@@ -24,16 +24,14 @@ export function randomizeAll() {
   state.rows = randInt(3, 16);
 
   // Column waveform
-  state.colWaveform    = randPick(WAVEFORMS);
-  state.colMinWeight   = randInt(1, 5);
-  state.colMaxWeight   = randInt(state.colMinWeight, 10);
-  state.colPeak        = randFloat(0.1, 0.9);
+  state.colWaveform  = randPick(WAVEFORMS);
+  state.colMaxWeight = randInt(2, 10);
+  state.colPeak      = randFloat(0.1, 0.9);
 
   // Row waveform
-  state.rowWaveform    = randPick(WAVEFORMS);
-  state.rowMinWeight   = randInt(1, 5);
-  state.rowMaxWeight   = randInt(state.rowMinWeight, 10);
-  state.rowPeak        = randFloat(0.1, 0.9);
+  state.rowWaveform  = randPick(WAVEFORMS);
+  state.rowMaxWeight = randInt(2, 10);
+  state.rowPeak      = randFloat(0.1, 0.9);
 
   // Generation params
   state.noiseScale      = randFloat(0.10, 1.50);

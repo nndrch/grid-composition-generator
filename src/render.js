@@ -43,9 +43,11 @@ function renderCells() {
 }
 
 function buildCell(mod, step, x, y, w, h) {
-  const g = el('g', {
+  // Nested <svg> creates its own viewport — overflow:hidden clips stroke to cell bounds
+  const g = el('svg', {
     class: 'cell',
-    transform: `translate(${x},${y})`,
+    x, y, width: w, height: h,
+    overflow: 'hidden',
     'data-module-id': mod.id,
     'data-w': w,
     'data-h': h,
