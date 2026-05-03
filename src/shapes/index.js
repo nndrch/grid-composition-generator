@@ -1,4 +1,4 @@
-import { quarterCirclePath, squarePath, trianglePath } from './built-in.js';
+import { quarterCirclePath, squarePath, trianglePath, circlePath } from './built-in.js';
 
 const registry = new Map();
 
@@ -21,6 +21,13 @@ registry.set('builtin:triangle', {
   name:    'Triangle',
   type:    'builtin',
   pathFn:  (w, h, step) => trianglePath(w, h, step),
+});
+
+registry.set('builtin:circle', {
+  id:      'builtin:circle',
+  name:    'Circle',
+  type:    'builtin',
+  pathFn:  (w, h) => circlePath(w, h),
 });
 
 export function getShape(id) {

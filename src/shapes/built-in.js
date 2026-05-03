@@ -22,3 +22,10 @@ export function trianglePath(w, h, step) {
     case 3: return `M 0,0 L ${w},${h} L 0,${h} Z`;
   }
 }
+
+export function circlePath(w, h) {
+  const rx = w / 2;
+  const ry = h / 2;
+  // Two 180° arcs — a full ellipse path
+  return `M 0,${ry} A ${rx},${ry} 0 1 0 ${w},${ry} A ${rx},${ry} 0 1 0 0,${ry} Z`;
+}
