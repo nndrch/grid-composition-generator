@@ -18,12 +18,14 @@ export function createNumericInput({ label, min, max, step = 1, value, onChange,
   range.className = 'numeric-input__range';
   range.min = min; range.max = max; range.step = step; range.value = value;
   range.disabled = disabled;
+  if (label) range.setAttribute('aria-label', `${label} slider`);
 
   const num = document.createElement('input');
   num.type = 'number';
   num.className = 'numeric-input__number';
   num.min = min; num.max = max; num.step = step; num.value = value;
   num.disabled = disabled;
+  if (label) num.setAttribute('aria-label', label);
 
   const clamp = v => Math.min(max, Math.max(min, isNaN(v) ? min : v));
 

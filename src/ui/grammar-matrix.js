@@ -102,12 +102,18 @@ export function initGrammarMatrix(containerEl) {
       for (const toMod of state.modules) {
         const td = document.createElement('td');
         const btn = document.createElement('button');
+        const allowed = isAllowed(fromMod.id, toMod.id);
+        const fromName = getShape(fromMod.shapeId)?.name ?? fromMod.id;
+        const toName   = getShape(toMod.shapeId)?.name   ?? toMod.id;
         btn.type = 'button';
-        btn.className = 'grammar-cell-btn' + (isAllowed(fromMod.id, toMod.id) ? ' is-active' : '');
+        btn.className = 'grammar-cell-btn' + (allowed ? ' is-active' : '');
+        btn.setAttribute('aria-label',   `${fromName} → ${toName}`);
+        btn.setAttribute('aria-pressed', allowed ? 'true' : 'false');
         btn.addEventListener('click', () => {
           const now = isAllowed(fromMod.id, toMod.id);
           setAllowed(fromMod.id, toMod.id, !now);
           btn.classList.toggle('is-active', !now);
+          btn.setAttribute('aria-pressed', (!now).toString());
         });
         td.appendChild(btn);
         tr.appendChild(td);

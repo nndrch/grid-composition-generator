@@ -7,6 +7,28 @@ import { initModuleList } from './ui/module-list.js';
 import { initGridControls } from './ui/grid-controls.js';
 import { initGenerationControls } from './ui/generation-controls.js';
 
+// ── Persist <details> open/close state across the session ────────────────────
+
+const DETAILS_KEY = 'gcg_sections';
+
+function initDetailsState() {
+  let saved = {};
+  try { saved = JSON.parse(sessionStorage.getItem(DETAILS_KEY) ?? '{}'); } catch {}
+
+  document.querySelectorAll('details.sidebar-section[id]').forEach(el => {
+    if (el.id in saved) el.open = saved[el.id];
+    el.addEventListener('toggle', () => {
+      try {
+        const s = JSON.parse(sessionStorage.getItem(DETAILS_KEY) ?? '{}');
+        s[el.id] = el.open;
+        sessionStorage.setItem(DETAILS_KEY, JSON.stringify(s));
+      } catch {}
+    });
+  });
+}
+
+initDetailsState();
+
 // ── Core actions ──────────────────────────────────────────────────────────────
 
 function doGenerate() { generate(); render(); }
