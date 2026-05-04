@@ -22,8 +22,9 @@ The v1.0 app (Phases 1–6) is deployed at https://grid-composition-generator.ve
 | Copy SVG to clipboard | 7a | New actions-bar button copies SVG to clipboard with transient feedback |
 | Enhanced Export dialog | 7b | Single click on Export opens a modal with count + format + PNG width; supports SVG and PNG, single and multi-file |
 | Mobile-friendly UI | 7c | App renders correctly on phone screens; sidebar becomes a slide-in drawer |
+| About section | 7d | New "About" section at the bottom of the sidebar with project description and GitHub link |
 
-**Sequencing:** 7a → 7b → 7c. Each builds on the previous: 7b reuses 7a's `prepareSVGString()`; 7c reuses 7b's export dialog for the share icon.
+**Sequencing:** 7a → 7b → 7c → 7d. Each builds on the previous: 7b reuses 7a's `prepareSVGString()`; 7c reuses 7b's export dialog for the share icon; 7d adds polish to the unified sidebar/drawer.
 
 ---
 
@@ -455,7 +456,61 @@ export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDia
 
 ---
 
-## 6. Risk register
+## 6. Phase 7d — About Section
+
+**Goal.** Add an "About" section as the last item in the sidebar on both desktop and mobile (where it will appear in the slide-in drawer). It provides context about the project and links to the source code.
+
+### Files to modify
+
+```
+index.html           ← add <details class="sidebar-section"> for About at the bottom of the sidebar
+styles/main.css      ← optional: any specific styling for the about text or links
+```
+
+### Key implementation notes
+
+**HTML addition** in `index.html` at the end of the `.sidebar`, after the Actions section:
+
+```html
+<details class="sidebar-section" open>
+  <summary>About</summary>
+  <div class="sidebar-content about-content">
+    <p>A client-side web app for generating grid-based geometric compositions, inspired by Sol LeWitt's instruction-based art. Configure a module pool, set grid waveforms and generation rules, then export resolution-independent SVG.</p>
+    <p><a href="https://github.com/nndrch/grid-composition-generator" target="_blank" rel="noopener noreferrer">View source on GitHub</a></p>
+  </div>
+</details>
+```
+
+**CSS additions** in `styles/main.css`:
+
+```css
+.about-content p {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.about-content a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.about-content a:hover {
+  text-decoration: underline;
+}
+```
+
+### Test checklist
+
+- [ ] "About" section appears as the last item in the sidebar on desktop
+- [ ] On mobile, "About" section is reachable by scrolling to the bottom of the slide-in drawer
+- [ ] Description text matches the intended project summary
+- [ ] GitHub link opens `https://github.com/nndrch/grid-composition-generator` in a new tab
+- [ ] Link styling matches the rest of the application
+
+---
+
+## 7. Risk register
 
 | Risk | Mitigation |
 |---|---|
@@ -470,7 +525,7 @@ export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDia
 
 ---
 
-## 7. Out of scope (Phase 7)
+## 8. Out of scope (Phase 7)
 
 - Native iOS/Android share sheet via `navigator.share()` — could replace the export dialog on mobile in a future phase
 - ZIP archive for multi-file export — would require a JS dependency
@@ -482,7 +537,7 @@ export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDia
 
 ---
 
-## 8. Working with Claude Code — session prompt
+## 9. Working with an AI Agent — session prompt
 
 ```
 I'm continuing the Grid Composition Generator on Phase 7.
@@ -492,14 +547,14 @@ Read these in order before writing code:
   - References/implementation-plan.md (Phases 1–6 baseline)
   - References/phase-7-plan.md (this phase)
 
-Today, do Phase 7[a/b/c] only — do not stray into other sub-phases.
+Today, do Phase 7[a/b/c/d] only — do not stray into other sub-phases.
 Architectural invariants stand: zero runtime npm deps, native APIs only,
 HTTPS-only deployment.
 
-Commit as "phase 7[a/b/c]: <feature>".
+Commit as "phase 7[a/b/c/d]: <feature>".
 ```
 
-Mid-session, if Claude Code drifts: cite the section number from this plan
+Mid-session, if the AI Agent drifts: cite the section number from this plan
 (e.g. "phase-7-plan.md §4 says the dialog is `<dialog>`, not a div overlay").
 
 End of session: summarise what was done, what's untested, what's deferred.
@@ -507,7 +562,7 @@ Open a PR, review the Vercel preview, merge.
 
 ---
 
-## 9. Phase order rationale
+## 10. Phase order rationale
 
 The dependency graph is:
 
@@ -518,22 +573,24 @@ The dependency graph is:
         │     └── exposes exportDialog.open()
         │           └── used by 7c (mobile share icon)
         └── still used by 7a's standalone copy button
+7d (About section)
+  └── independent HTML/CSS addition at the end of the sidebar
 ```
 
-Doing 7a first means 7b doesn't need to refactor `export.js` again. Doing 7b before 7c means mobile can call into the dialog directly rather than adding ad-hoc mobile-only export logic.
+Doing 7a first means 7b doesn't need to refactor `export.js` again. Doing 7b before 7c means mobile can call into the dialog directly rather than adding ad-hoc mobile-only export logic. 7d is independent but rounds out the sidebar design.
 
 ---
 
-## 10. Done criteria
+## 11. Done criteria
 
 Phase 7 ships when:
 
-- All three sub-phases merged to `main`
+- All four sub-phases merged to `main`
 - Vercel preview verified on:
   - Desktop Chrome (1440×900)
   - Mobile Safari iOS (Safari simulator or physical iPhone)
   - Mobile Chrome Android (DevTools mobile emulation)
-- Test checklists in §3, §4, §5 all pass
+- Test checklists in §3, §4, §5, §6 all pass
 - No regression on existing v1.0 features (run through PRD §10 edge cases)
-- README updated with the three new features in the Features list
+- README updated with the new features in the Features list
 - Tag commit `v1.1`
