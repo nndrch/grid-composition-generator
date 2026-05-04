@@ -10,6 +10,38 @@
   <link rel="stylesheet" href="styles/main.css" />
 </head>
 <body>
+  <div class="mobile-topbar">
+    <button class="mobile-icon-btn" id="mobile-menu" aria-label="Open controls">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <button class="mobile-icon-btn" id="mobile-export" aria-label="Export">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+        <polyline points="16 6 12 2 8 6"/>
+        <line x1="12" y1="2" x2="12" y2="15"/>
+      </svg>
+    </button>
+  </div>
+
+  <button class="mobile-icon-btn mobile-dice" id="mobile-randomize" aria-label="Randomize all">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="3"/>
+      <circle cx="8" cy="8" r="1.2" fill="currentColor"/>
+      <circle cx="16" cy="8" r="1.2" fill="currentColor"/>
+      <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
+      <circle cx="8" cy="16" r="1.2" fill="currentColor"/>
+      <circle cx="16" cy="16" r="1.2" fill="currentColor"/>
+    </svg>
+  </button>
+
+  <button class="mobile-generate-btn" id="mobile-generate">Generate</button>
+
+  <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
+
   <div class="app">
     <aside class="sidebar">
 
@@ -32,8 +64,17 @@
       <div class="sidebar-section sidebar-section--actions">
         <button class="btn-primary" id="generate">↻ Generate</button>
         <button class="btn-secondary" id="randomize">⚂ Randomize all</button>
-        <button class="btn-secondary" id="export-svg">↓ Export SVG</button>
+        <button class="btn-secondary" id="copy-svg">⎘ Copy SVG</button>
+        <button class="btn-secondary" id="export-svg">↓ Export…</button>
       </div>
+
+      <details id="section-about" class="sidebar-section" open>
+        <summary class="section-label">About</summary>
+        <div class="section-content about-content">
+          <p>A client-side web app for generating grid-based geometric compositions, inspired by Sol LeWitt's instruction-based art. Configure a module pool, set grid waveforms and generation rules, then export resolution-independent SVG.</p>
+          <p><a href="https://github.com/nndrch/grid-composition-generator" target="_blank" rel="noopener noreferrer">View source on GitHub</a></p>
+        </div>
+      </details>
 
     </aside>
 
@@ -48,6 +89,41 @@
       </div>
     </main>
   </div>
+
+  <dialog id="export-dialog">
+    <form method="dialog" class="export-form">
+      <h2>Export composition</h2>
+
+      <label class="form-row">
+        Generations
+        <select name="count" id="dialog-count">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="4">4</option>
+          <option value="8">8</option>
+          <option value="16">16</option>
+        </select>
+      </label>
+
+      <fieldset class="format-group">
+        <legend>Format</legend>
+        <label><input type="radio" name="format" value="svg" checked> SVG</label>
+        <label><input type="radio" name="format" value="png"> PNG</label>
+      </fieldset>
+
+      <label class="form-row png-width-row">
+        Width (px)
+        <input type="number" name="pngWidth" id="dialog-png-width" min="100" max="8000" step="100" value="1200">
+        <span class="png-height-readout" id="dialog-height-readout">× 1200 px</span>
+      </label>
+
+      <div class="dialog-actions">
+        <button type="button" class="btn-secondary" id="dialog-copy">⎘ Copy SVG</button>
+        <button type="button" class="btn-secondary" id="dialog-cancel">Cancel</button>
+        <button type="submit" class="btn-primary" id="dialog-download">↓ Download</button>
+      </div>
+    </form>
+  </dialog>
 
   <script type="module" src="src/main.js"></script>
 </body>

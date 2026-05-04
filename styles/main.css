@@ -705,3 +705,237 @@ input[type="color"].is-null { opacity: 0.25; }
   letter-spacing: 0.02em;
   padding: 2px 0;
 }
+
+/* ── Copy SVG feedback ───────────────────────────────────────────────────── */
+
+.btn-secondary.is-copied {
+  color: var(--text-bright);
+  border-color: var(--text-dim);
+}
+
+/* ── About section ───────────────────────────────────────────────────────── */
+
+.about-content p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.about-content p:last-child { margin-bottom: 0; }
+
+.about-content a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.about-content a:hover { text-decoration: underline; }
+
+/* ── Export dialog ───────────────────────────────────────────────────────── */
+
+#export-dialog {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-accent);
+  border-radius: 4px;
+  padding: 24px;
+  min-width: 320px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  margin: auto;
+}
+
+#export-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.export-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.export-form h2 {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+
+.form-row select,
+.form-row input[type="number"] {
+  background: var(--bg);
+  border: 1px solid var(--border-accent);
+  color: var(--text-bright);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 2px;
+  min-width: 70px;
+}
+
+.format-group {
+  border: none;
+  padding: 0;
+  display: flex;
+  gap: 16px;
+}
+
+.format-group legend {
+  font-size: 11px;
+  color: var(--text);
+  margin-bottom: 6px;
+  float: left;
+  width: 100%;
+}
+
+.format-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.png-height-readout {
+  color: var(--text-dim);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.png-width-row.is-hidden { display: none; }
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+/* ── Mobile chrome (hidden on desktop) ───────────────────────────────────── */
+
+.mobile-topbar,
+.mobile-dice,
+.mobile-generate-btn,
+.sidebar-overlay {
+  display: none;
+}
+
+/* ── Mobile layout ───────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  body { overflow: hidden; }
+
+  .app {
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  /* Sidebar becomes a slide-in drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -100%;
+    width: 85%;
+    max-width: 350px;
+    z-index: 100;
+    transition: left 0.25s ease-out;
+    overflow-y: auto;
+  }
+
+  .sidebar.is-open { left: 0; }
+
+  /* Hide desktop actions bar inside the drawer */
+  .sidebar-section--actions { display: none; }
+
+  /* Canvas fills remaining space */
+  .canvas-area {
+    flex: 1;
+    padding: 64px 16px 88px;
+    overflow: hidden;
+  }
+
+  /* Overlay behind drawer */
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    display: block;
+  }
+
+  .sidebar-overlay[hidden] { display: none; }
+
+  /* Topbar */
+  .mobile-topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 12px;
+    z-index: 50;
+  }
+
+  /* Dice button (centered below topbar) */
+  .mobile-dice {
+    position: fixed;
+    top: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    display: flex;
+  }
+
+  /* Generate button (bottom bar) */
+  .mobile-generate-btn {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    height: 52px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--text-bright);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    z-index: 50;
+    display: block;
+    border-radius: 2px;
+  }
+
+  .mobile-generate-btn:hover {
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* Icon buttons */
+  .mobile-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    color: var(--text-bright);
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .mobile-icon-btn:hover { background: rgba(255,255,255,0.06); }
+}

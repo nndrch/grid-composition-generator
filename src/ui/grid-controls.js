@@ -54,7 +54,7 @@ function buildAxisBlock(label, axis) {
 
   // Count
   const count = createNumericInput({
-    label: 'Count', min: 1, max: 24, step: 1, value: getCount(),
+    label: 'Count', min: 1, max: 64, step: 1, value: getCount(),
     onChange: v => {
       if (isCol) state.cols = v; else state.rows = v;
       _onGenerate();
