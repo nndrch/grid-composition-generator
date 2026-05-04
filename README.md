@@ -51,4 +51,4 @@ Zero runtime npm dependencies.
 
 ## Custom SVG authoring
 
-Upload any SVG with an explicit `viewBox`. The app overwrites all fill, stroke, and stroke-width at render time — author with any colors. The 4 step orientations are produced by mirroring (not rotation). See `References/grid-composition-prd.md` Appendix A for the full authoring guide.
+Upload any SVG with an explicit `viewBox`. The app overwrites all fill, stroke, and stroke-width at render time — author with any colors. The 4 step orientations are produced by mirroring (not rotation). See `docs/project-specification.md` Appendix A for the full authoring guide.

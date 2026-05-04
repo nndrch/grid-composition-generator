@@ -1,6 +1,12 @@
-# Grid Composition Generator — PRD v1.0
+# Grid Composition Generator — Project Specification
 
-> **For use with Claude Code.** Provide this document in full at the start of each session. Treat every section as authoritative. Update the changelog when decisions change.
+> **For use with AI Agents.** Provide this document in full at the start of each session. Treat every section as authoritative. Update the changelog when decisions change.
+
+## Current Development Phase
+
+We are currently working on expanding the v1.0 baseline. 
+**[→ View the Current Implementation Plan (Phases 7 & 8)](./current-plan.md)** 
+Read the current plan before starting any new coding tasks.
 
 ---
 
@@ -718,9 +724,14 @@ export default defineConfig({ build: { outDir: 'dist' } });
 
 ---
 
-## 13. Working with Claude Code
+## 13. Implementation Status
 
-See `implementation-plan.md` for the phased build plan with literal session prompts.
+**Status: v1.0 Baseline Built (Phases 1–6 Completed)**
+
+The core features described in this PRD (Phases 1 through 6) have been fully implemented and deployed. This constitutes the v1.0 baseline.
+
+For the historical record of how v1.0 was built, see `docs/archive/implementation-plan.md`.
+For active development and upcoming features (Phase 7 onwards), refer to `docs/current-plan.md`.
 
 ---
 
@@ -851,3 +862,4 @@ Author with any colors — they will be replaced. Use `stroke-width` to establis
 | 2026-05-01 | Removed: PDF export (out of scope v1) |
 | 2026-05-01 | Added: collapsible sidebar sections via `<details>/<summary>` |
 | 2026-05-01 | Stack simplified: zero runtime npm dependencies |
+| 2026-05-04 | Status update: Phases 1–6 (v1.0 baseline) fully implemented |

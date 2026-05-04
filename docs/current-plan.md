@@ -1,30 +1,31 @@
-# Phase 7 Implementation Plan
+# Phase 7 & 8 Implementation Plan
 
-> Companion to `grid-composition-prd.md` and `implementation-plan.md`. Phase 7 adds three features on top of the v1.0 baseline. Read the PRD before starting.
+> Companion to `project-specification.md` and `implementation-plan.md`. Phases 7 and 8 add new features on top of the v1.0 baseline. Read the Specification before starting.
 
 ---
 
 ## 0. Context and constraints
 
-The v1.0 app (Phases 1–6) is deployed at https://grid-composition-generator.vercel.app. It is a desktop-only, two-column layout (350px sidebar + canvas area). All architectural invariants from the PRD remain in force:
+The v1.0 app (Phases 1–6) is deployed at https://grid-composition-generator.vercel.app. It is a desktop-only, two-column layout (350px sidebar + canvas area). All architectural invariants from the Specification remain in force:
 
 - **Zero runtime npm dependencies.** Vite is dev-only. No JSZip, no clipboard polyfill libraries, no PNG library.
 - **Native APIs only** for export, clipboard, rasterisation: `Blob`, `URL.createObjectURL`, `XMLSerializer`, `<canvas>`, `navigator.clipboard`, `<dialog>`.
 - **HTTPS-only deployment.** `navigator.clipboard` is always available; no `execCommand` fallback needed.
-- **Static SVG output.** Exported SVG carries `viewBox` only, no `width`/`height` (per PRD §6.1, §9).
+- **Static SVG output.** Exported SVG carries `viewBox` only, no `width`/`height` (per Specification §6.1, §9).
 
 ---
 
 ## 1. Feature overview
 
-| Feature | Sub-phase | Deployable result |
+| Feature | Phase | Deployable result |
 |---|---|---|
 | Copy SVG to clipboard | 7a | New actions-bar button copies SVG to clipboard with transient feedback |
 | Enhanced Export dialog | 7b | Single click on Export opens a modal with count + format + PNG width; supports SVG and PNG, single and multi-file |
-| Mobile-friendly UI | 7c | App renders correctly on phone screens; sidebar becomes a slide-in drawer |
-| About section | 7d | New "About" section at the bottom of the sidebar with project description and GitHub link |
+| About section | 7c | New "About" section at the bottom of the sidebar with project description and GitHub link |
+| Extended Grid Limits | 7d | Max grid columns and rows increased from 24 to 64 |
+| Mobile-friendly UI | 8 | App renders correctly on phone screens; sidebar becomes a slide-in drawer |
 
-**Sequencing:** 7a → 7b → 7c → 7d. Each builds on the previous: 7b reuses 7a's `prepareSVGString()`; 7c reuses 7b's export dialog for the share icon; 7d adds polish to the unified sidebar/drawer.
+**Sequencing:** 7a → 7b → 7c → 7d → 8. Phase 8 builds on 7b's export dialog for the share icon and 7c's About section which lives in the drawer.
 
 ---
 
@@ -279,7 +280,94 @@ The dialog also exposes `exportDialog.open()` for the mobile share icon to call 
 
 ---
 
-## 5. Phase 7c — Mobile-friendly UI
+## 5. Phase 7c — About Section
+
+**Goal.** Add an "About" section as the last item in the sidebar on both desktop and mobile (where it will appear in the slide-in drawer). It provides context about the project and links to the source code.
+
+### Files to modify
+
+```
+index.html           ← add <details class="sidebar-section"> for About at the bottom of the sidebar
+styles/main.css      ← optional: any specific styling for the about text or links
+```
+
+### Key implementation notes
+
+**HTML addition** in `index.html` at the end of the `.sidebar`, after the Actions section:
+
+```html
+<details class="sidebar-section" open>
+  <summary>About</summary>
+  <div class="sidebar-content about-content">
+    <p>A client-side web app for generating grid-based geometric compositions, inspired by Sol LeWitt's instruction-based art. Configure a module pool, set grid waveforms and generation rules, then export resolution-independent SVG.</p>
+    <p><a href="https://github.com/nndrch/grid-composition-generator" target="_blank" rel="noopener noreferrer">View source on GitHub</a></p>
+  </div>
+</details>
+```
+
+**CSS additions** in `styles/main.css`:
+
+```css
+.about-content p {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.about-content a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.about-content a:hover {
+  text-decoration: underline;
+}
+```
+
+### Test checklist
+
+- [ ] "About" section appears as the last item in the sidebar on desktop
+- [ ] On mobile, "About" section is reachable by scrolling to the bottom of the slide-in drawer
+- [ ] Description text matches the intended project summary
+- [ ] GitHub link opens `https://github.com/nndrch/grid-composition-generator` in a new tab
+- [ ] Link styling matches the rest of the application
+
+---
+
+## 6. Phase 7d — Extended Grid Limits
+
+**Goal.** Increase the maximum allowed columns and rows from 24 to 64.
+
+### Files to modify
+
+```
+index.html           ← update `max="24"` to `max="64"` for both column and row inputs
+src/state.js         ← update validation limits for columns and rows to 64
+src/ui/grid.js       ← update any hardcoded max values in UI sync logic
+```
+
+### Key implementation notes
+
+**HTML update** in `index.html`:
+Locate the inputs for `#grid-cols` and `#grid-rows` and update their `max` attributes:
+```html
+<input type="number" id="grid-cols" min="1" max="64" value="8">
+<input type="number" id="grid-rows" min="1" max="64" value="8">
+```
+
+**State validation** in `src/state.js`:
+Ensure the clamp function or maximum limit in the grid setter allows up to 64 instead of 24.
+
+### Test checklist
+
+- [ ] Typing 64 in the columns/rows input updates the grid successfully
+- [ ] Typing 65 clamps down to 64
+- [ ] The grid renders correctly with a 64x64 matrix
+- [ ] Randomize all function handles values up to 64 for columns/rows (or uses a sensible default range while allowing max 64 manually)
+
+---
+
+## 7. Phase 8 — Mobile-friendly UI
 
 **Goal.** Make the app usable on phone-size viewports by replacing the fixed sidebar with a slide-in drawer and surfacing primary actions in a topbar + bottom button.
 
@@ -300,7 +388,7 @@ The dialog also exposes `exportDialog.open()` for the mobile share icon to call 
 └──────────────────────────────────┘
 ```
 
-Hamburger tap → existing sidebar slides in from the left, full height. Overlay (semi-transparent) appears over the canvas; tapping it or pressing Escape closes the drawer. Share icon → opens the export dialog from Phase 7b. Dice icon → calls `randomizeAll()` + `generate()` + UI sync (same as desktop Randomize button). Generate button → `generate()` + `render()`.
+Hamburger tap → existing sidebar slides in from the left, full height. Overlay (semi-transparent) appears over the canvas; tapping it or pressing Escape closes the drawer. Share icon → Generates a single 1200px PNG and shares it directly via `navigator.share()` (Option A: "Fast Share" bypassing the export dialog). Dice icon → calls `randomizeAll()` + `generate()` + UI sync. Generate button → `generate()` + `render()`.
 
 The sidebar's existing actions section (Generate / Randomize / Copy SVG / Export) is hidden on mobile (`display: none`) — those actions are reachable from the mobile chrome.
 
@@ -409,8 +497,9 @@ Add these elements outside `.app`, but inside `<body>`:
 import { generate } from '../generate.js';
 import { render } from '../render.js';
 import { randomizeAll } from '../randomize.js';
+// (Ensure prepareSVGString and exportPNG are exported from export.js)
 
-export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDialog }) {
+export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDialog, state }) {
   const sidebar = document.querySelector('.sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   const menuBtn = document.getElementById('mobile-menu');
@@ -425,7 +514,27 @@ export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDia
   overlay.addEventListener('click', close);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 
-  exportBtn.addEventListener('click', () => exportDialog.open());
+  exportBtn.addEventListener('click', async () => {
+    try {
+      const { prepareSVGString, exportPNG } = await import('../export.js');
+      const xml = prepareSVGString();
+      const pngBlob = await exportPNG(xml, 1200, state.aspectWidth, state.aspectHeight);
+      const file = new File([pngBlob], 'composition.png', { type: 'image/png' });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Grid Composition'
+        });
+      } else {
+        // Fallback for browsers that don't support file sharing
+        exportDialog.open();
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+      exportDialog.open(); // Fallback on error
+    }
+  });
 
   diceBtn.addEventListener('click', () => {
     randomizeAll();
@@ -447,7 +556,8 @@ export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDia
 - [ ] All `<details>` sections inside drawer work
 - [ ] Tap dice → canvas randomizes; UI in drawer reflects new state
 - [ ] Tap Generate → canvas regenerates with current state
-- [ ] Tap share icon → export dialog opens, dialog is usable on mobile
+- [ ] Tap share icon → Native OS Share Sheet opens with a 1200px PNG file attached
+- [ ] Tap share icon in an unsupported browser → Falls back to opening the custom export dialog
 - [ ] Resize from desktop to mobile mid-session → layout transitions cleanly
 - [ ] Resize from mobile to desktop → drawer state cleared, desktop sidebar visible
 - [ ] No `body` scroll on mobile (only sidebar content scrolls)
@@ -456,61 +566,7 @@ export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDia
 
 ---
 
-## 6. Phase 7d — About Section
-
-**Goal.** Add an "About" section as the last item in the sidebar on both desktop and mobile (where it will appear in the slide-in drawer). It provides context about the project and links to the source code.
-
-### Files to modify
-
-```
-index.html           ← add <details class="sidebar-section"> for About at the bottom of the sidebar
-styles/main.css      ← optional: any specific styling for the about text or links
-```
-
-### Key implementation notes
-
-**HTML addition** in `index.html` at the end of the `.sidebar`, after the Actions section:
-
-```html
-<details class="sidebar-section" open>
-  <summary>About</summary>
-  <div class="sidebar-content about-content">
-    <p>A client-side web app for generating grid-based geometric compositions, inspired by Sol LeWitt's instruction-based art. Configure a module pool, set grid waveforms and generation rules, then export resolution-independent SVG.</p>
-    <p><a href="https://github.com/nndrch/grid-composition-generator" target="_blank" rel="noopener noreferrer">View source on GitHub</a></p>
-  </div>
-</details>
-```
-
-**CSS additions** in `styles/main.css`:
-
-```css
-.about-content p {
-  font-family: var(--font-body);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-dim);
-  margin-bottom: 8px;
-}
-.about-content a {
-  color: var(--accent);
-  text-decoration: none;
-}
-.about-content a:hover {
-  text-decoration: underline;
-}
-```
-
-### Test checklist
-
-- [ ] "About" section appears as the last item in the sidebar on desktop
-- [ ] On mobile, "About" section is reachable by scrolling to the bottom of the slide-in drawer
-- [ ] Description text matches the intended project summary
-- [ ] GitHub link opens `https://github.com/nndrch/grid-composition-generator` in a new tab
-- [ ] Link styling matches the rest of the application
-
----
-
-## 7. Risk register
+## 8. Risk register
 
 | Risk | Mitigation |
 |---|---|
@@ -522,12 +578,13 @@ styles/main.css      ← optional: any specific styling for the about text or li
 | Grammar matrix is wide on mobile | Already has `overflow-x: auto`; keep as-is, drawer is wide enough |
 | Native `<dialog>` not styled by `.app` parent context | Place `<dialog>` outside `.app`, at end of `<body>` |
 | Clicking inside dialog while form has invalid PNG width | `<input min/max>` + clamp on submit |
+| UI performance at 64x64 | 4096 cells might stress renderer. Mitigated because app uses native SVG DOM. |
 
 ---
 
-## 8. Out of scope (Phase 7)
+## 9. Out of scope (Phase 7 & 8)
 
-- Native iOS/Android share sheet via `navigator.share()` — could replace the export dialog on mobile in a future phase
+- Option B "Hybrid Share Dialog" (Mobile share icon opens custom dialog, but replaces "Download" with "Share"). Kept out of scope but detailed for a follow-up version if Option A's fast-share proves too restrictive.
 - ZIP archive for multi-file export — would require a JS dependency
 - WebP, JPEG, PDF formats — only SVG and PNG
 - Custom dialog (non-`<dialog>`) for older browser support
@@ -537,32 +594,32 @@ styles/main.css      ← optional: any specific styling for the about text or li
 
 ---
 
-## 9. Working with an AI Agent — session prompt
+## 10. Working with an AI Agent — session prompt
 
 ```
-I'm continuing the Grid Composition Generator on Phase 7.
+I'm continuing the Grid Composition Generator on Phase 7 & 8.
 
 Read these in order before writing code:
-  - References/grid-composition-prd.md (source of truth)
-  - References/implementation-plan.md (Phases 1–6 baseline)
-  - References/phase-7-plan.md (this phase)
+  - docs/project-specification.md (source of truth)
+  - docs/archive/implementation-plan.md (Phases 1–6 baseline)
+  - docs/current-plan.md (this plan)
 
-Today, do Phase 7[a/b/c/d] only — do not stray into other sub-phases.
+Today, do Phase [7a/7b/7c/7d/8] only — do not stray into other phases.
 Architectural invariants stand: zero runtime npm deps, native APIs only,
 HTTPS-only deployment.
 
-Commit as "phase 7[a/b/c/d]: <feature>".
+Commit as "phase [7a/7b/7c/7d/8]: <feature>".
 ```
 
 Mid-session, if the AI Agent drifts: cite the section number from this plan
-(e.g. "phase-7-plan.md §4 says the dialog is `<dialog>`, not a div overlay").
+(e.g. "current-plan.md §4 says the dialog is `<dialog>`, not a div overlay").
 
 End of session: summarise what was done, what's untested, what's deferred.
 Open a PR, review the Vercel preview, merge.
 
 ---
 
-## 10. Phase order rationale
+## 11. Phase order rationale
 
 The dependency graph is:
 
@@ -571,26 +628,30 @@ The dependency graph is:
   └── extracts prepareSVGString()
         ├── used by 7b (export dialog)
         │     └── exposes exportDialog.open()
-        │           └── used by 7c (mobile share icon)
+        │           └── used by 8 (mobile share icon)
         └── still used by 7a's standalone copy button
-7d (About section)
+7c (About section)
   └── independent HTML/CSS addition at the end of the sidebar
+7d (Extended Grid Limits)
+  └── independent logic modification to state/UI inputs
+8 (Mobile UI)
+  └── implements native `navigator.share()` using 7b's `exportPNG`, with a fallback to 7b's export dialog. Contains 7c (about section) inside its drawer.
 ```
 
-Doing 7a first means 7b doesn't need to refactor `export.js` again. Doing 7b before 7c means mobile can call into the dialog directly rather than adding ad-hoc mobile-only export logic. 7d is independent but rounds out the sidebar design.
+Doing 7a first means 7b doesn't need to refactor `export.js` again. Doing 7b before 8 ensures `exportPNG` is available for the native share sheet generation, and provides the fallback dialog for unsupported browsers. 7c and 7d are independent but must be completed before or alongside 8 so the drawer has its final contents.
 
 ---
 
-## 11. Done criteria
+## 12. Done criteria
 
-Phase 7 ships when:
+Phase 7 & 8 ships when:
 
-- All four sub-phases merged to `main`
+- All Phase 7 and 8 sub-phases merged to `main`
 - Vercel preview verified on:
   - Desktop Chrome (1440×900)
   - Mobile Safari iOS (Safari simulator or physical iPhone)
   - Mobile Chrome Android (DevTools mobile emulation)
-- Test checklists in §3, §4, §5, §6 all pass
-- No regression on existing v1.0 features (run through PRD §10 edge cases)
+- Test checklists in §3, §4, §5, §6, §7 all pass
+- No regression on existing v1.0 features (run through Specification §10 edge cases)
 - README updated with the new features in the Features list
-- Tag commit `v1.1`
+- Tag commit `v1.2`
