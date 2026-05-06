@@ -4,9 +4,11 @@
 
 ## Current Development Phase
 
-We are currently working on expanding the v1.0 baseline. 
-**[→ View the Current Implementation Plan (Phases 7 & 8)](./current-plan.md)** 
+We are currently working on a **post-v1.2 simplification pass**: stripping back the export flow, the shape-library menu, the aspect-ratio presets, and raising the grid Max-weight ceiling.
+**[→ View the Current Implementation Plan (Next-release simplification)](./next-release-plan.md)**
 Read the current plan before starting any new coding tasks.
+
+For the historical Phase 7 & 8 plan (now shipped as v1.2), see [`current-plan.md`](./current-plan.md).
 
 ---
 
@@ -46,7 +48,9 @@ Hosted as a static app on Vercel. No backend, no auth, no npm dependencies for e
 │       ├── grammar-matrix.js ← transition matrix UI
 │       ├── grid-controls.js  ← waveform controls per axis
 │       ├── shape-library.js  ← built-in reference + custom upload list
-│       └── numeric-input.js  ← shared slider + number sync component
+│       ├── numeric-input.js  ← shared slider + number sync component
+│       ├── export-dialog.js  ← export modal and batch logic
+│       └── mobile-nav.js     ← mobile drawer and actions
 ├── styles/
 │   └── main.css
 ├── public/
@@ -82,6 +86,8 @@ Two-column layout. Fixed sidebar left; canvas fills remaining space.
 - **Sidebar:** 350px, full height, scrollable, collapsible section groups
 - **Canvas area:** flex-grow, SVG preview centered, scaled to fit the viewport while maintaining the user-defined aspect ratio via CSS `aspect-ratio`
 
+**Mobile Breakpoint (`max-width: 768px`):** The layout switches to a mobile-friendly view. The sidebar becomes a slide-in drawer toggled via a hamburger menu. The canvas fills the viewport, and primary actions (Share, Randomize, Generate) are exposed directly in the mobile chrome.
+
 ### 4.1 Sidebar collapsible sections
 
 Implemented as `<details>/<summary>` elements. Four are collapsible; Actions is always visible.
@@ -92,7 +98,8 @@ Implemented as `<details>/<summary>` elements. Four are collapsible; Actions is 
 | **Modules** | Open | Module pool list, add button, shape library |
 | **Grid** | Open | Cols/rows waveform controls |
 | **Generation** | Collapsed | Noise scale, symmetry, rotation, grammar |
-| **Actions** | Always visible | Generate, Randomize, Export SVG |
+| **Actions** | Always visible | Generate, Randomize, Copy SVG, Export |
+| **About** | Open | Project description and GitHub link (at the bottom) |
 
 Each collapsible section:
 ```html
@@ -509,13 +516,12 @@ Grammar is a global transition matrix where rows = "from module" and columns = "
 
 ```
 Aspect ratio
-  W [number input, integer ≥ 1, default 1]
-  H [number input, integer ≥ 1, default 1]
+  W [number input, integer ≥ 1, default 1]  ⇄  H [number input, integer ≥ 1, default 1]
 
 Show grid [checkbox]
 ```
 
-Common presets shown as quick-select buttons below the inputs: `1:1`, `4:3`, `3:2`, `16:9`, `2:3`, `9:16`. Clicking a preset sets W and H and triggers re-render.
+A compact `⇄` icon button between the W and H inputs swaps their values and re-renders. There are no quick-select preset buttons — designers type the ratio they want.
 
 ### 7.2 Modules section
 
@@ -550,10 +556,11 @@ Module preview (36×36 SVG) renders at step 0, updates live on any color or shap
 
 **Shape library subsection** (inside Modules, below pool list):
 
-- Read-only display of the 3 built-ins with thumbnails
 - List of uploaded custom shapes with thumbnail + name + delete button
 - `+ Upload SVG` button (triggers hidden `<input type="file">`)
 - Max file size hint: 100 KB
+
+Built-in shapes are **not** listed in this subsection. They remain available from each module's per-row shape picker dropdown (with their geometric icon previews — the icon IS the identity).
 
 ### 7.3 Grid section
 
@@ -561,10 +568,10 @@ Two identical sub-blocks, one per axis (Columns / Rows).
 
 ```
 Columns
-  Count  [slider 1–24] [number 1–24]
+  Count  [slider 1–64] [number 1–64]
   Distribution  [select: Locked | Sawtooth | Sine]
   Min weight    [slider 1–10] [number]   (disabled when Locked)
-  Max weight    [slider 1–10] [number]
+  Max weight    [slider 1–50] [number]
   Peak          [slider 0.0–1.0] [number] (disabled when Locked)
 
 Rows
@@ -591,13 +598,20 @@ Shortcut buttons: **All on**, **All off**, **Identity** (self-only, each module 
 
 Grammar changes take effect on the next Generate.
 
-### 7.5 Actions (always visible)
+### 7.5 Actions (always visible on desktop)
 
 ```
 [↻ Generate]          ← primary button, always enabled
 [⚂ Randomize all]    ← secondary button
-[↓ Export SVG]        ← secondary button
+[⎘ Copy SVG]         ← secondary button (desktop only)
+[↓ Export PNG]        ← secondary button, downloads PNG@1200 immediately (no dialog)
 ```
+
+On mobile, the topbar export icon uses `navigator.share` with PNG@1200 instead.
+
+### 7.6 About section
+
+Located at the bottom of the sidebar. It contains a brief description of the project and a link to the source code on GitHub.
 
 ---
 
@@ -613,7 +627,7 @@ A single button that randomizes generation parameters in one click, then calls `
 | `rows` | Random integer 3–16 |
 | `colWaveform` / `rowWaveform` | Random pick from `['locked', 'sawtooth', 'sine']` |
 | `colMinWeight` / `rowMinWeight` | Random integer 1–5 |
-| `colMaxWeight` / `rowMaxWeight` | Random integer `minWeight`–10 |
+| `colMaxWeight` / `rowMaxWeight` | Random integer 2–30 |
 | `colPeak` / `rowPeak` | Random float 0.1–0.9 |
 | `noiseScale` | Random float 0.10–1.50, rounded to 2 dp |
 | `symmetry` | Random pick from `['none','mirrorX','mirrorY','fourFold']` |
@@ -637,33 +651,19 @@ A single button that randomizes generation parameters in one click, then calls `
 
 ---
 
-## 9. SVG export
+## 9. Export and Sharing
 
-```js
-// src/export.js
+### 9.1 Desktop — Export PNG (one click)
 
-export function exportSVG(state) {
-  const svg = document.getElementById('canvas-svg').cloneNode(true);
+Clicking the "↓ Export PNG" button immediately downloads the current composition as a 1200px-wide PNG (height calculated from the aspect ratio). There is no dialog and no per-export configuration. The PNG is rasterised by decoding the serialized SVG string into an `Image()` and drawing it onto a temporary `<canvas>`, exported via `canvas.toBlob()`.
 
-  // Remove preview-only overlay
-  svg.querySelector('#grid-overlay')?.remove();
+### 9.2 Desktop — Copy SVG
 
-  // No width/height attributes — purely viewBox-based, resolution-independent
-  svg.removeAttribute('width');
-  svg.removeAttribute('height');
+The "⎘ Copy SVG" button serializes the native SVG DOM (grid overlay removed, `width`/`height` attributes stripped) and writes it to the clipboard via `navigator.clipboard.writeText()`. The exported markup carries the `viewBox` only, making it resolution-independent.
 
-  const xml = new XMLSerializer().serializeToString(svg);
-  const blob = new Blob([xml], { type: 'image/svg+xml' });
-  const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(blob),
-    download: 'composition.svg',
-  });
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-```
+### 9.3 Mobile share
 
-Output: `composition.svg`, no fixed dimensions, viewBox only. Opens at any size in any vector application. Grid overlay is excluded.
+On mobile, the topbar export icon generates a 1200px PNG and calls `navigator.share({ files: [pngFile] })` to open the native OS share sheet. If `navigator.canShare({ files })` returns false, it falls back to a direct download of the same PNG.
 
 ---
 
@@ -676,7 +676,7 @@ Output: `composition.svg`, no fixed dimensions, viewBox only. Opens at any size 
 | All colors null | Module renders as invisible negative space. Valid. |
 | `fgColor` null on custom SVG | `fill="none"` applied to all inner elements — stroke-only rendering |
 | cols or rows = 1 | Valid; degenerate single-track grid |
-| 24×24 grid (576 cells) | Use `DocumentFragment` for batch DOM appends |
+| 64×64 grid (4096 cells) | Rendered without heavy lag because the app uses native SVG DOM |
 | Custom SVG with no viewBox | Parse from `width`/`height`; last resort `0 0 100 100` |
 | Custom SVG with `<script>` | Stripped during sanitization |
 | Custom SVG > 100KB | Accepted; inline warning shown in library section |
@@ -686,6 +686,8 @@ Output: `composition.svg`, no fixed dimensions, viewBox only. Opens at any size 
 | Grammar dead-end (all transitions blocked) | Fall back to full pool for that cell; `console.warn` |
 | Waveform params changed | Re-render only (no regeneration) |
 | Aspect ratio changed | Recompute viewBox + track sizes, re-render; no regeneration |
+| PNG export width | Fixed at 1200px (no user-facing config) |
+| Mobile share | Falls back to a direct PNG download if `navigator.canShare({ files })` returns false |
 
 ---
 
@@ -726,12 +728,12 @@ export default defineConfig({ build: { outDir: 'dist' } });
 
 ## 13. Implementation Status
 
-**Status: v1.0 Baseline Built (Phases 1–6 Completed)**
+**Status: v1.2 shipped (Phases 1–8). Next: simplification pass in progress.**
 
-The core features described in this PRD (Phases 1 through 6) have been fully implemented and deployed. This constitutes the v1.0 baseline.
+The core features described in this PRD (Phases 1 through 8) have been fully implemented and deployed as v1.2. The current iteration is a simplification pass tracked in [`next-release-plan.md`](./next-release-plan.md): one-click PNG export, library menu cleanup, aspect-ratio swap (presets removed), and a higher Max-weight ceiling. The next tagged release will be v1.3.
 
 For the historical record of how v1.0 was built, see `docs/archive/implementation-plan.md`.
-For active development and upcoming features (Phase 7 onwards), refer to `docs/current-plan.md`.
+For the specifics of Phase 7 & 8 (now shipped), see `docs/current-plan.md`.
 
 ---
 
@@ -863,3 +865,5 @@ Author with any colors — they will be replaced. Use `stroke-width` to establis
 | 2026-05-01 | Added: collapsible sidebar sections via `<details>/<summary>` |
 | 2026-05-01 | Stack simplified: zero runtime npm dependencies |
 | 2026-05-04 | Status update: Phases 1–6 (v1.0 baseline) fully implemented |
+| 2026-05-04 | Phases 7 & 8: SVG/PNG export dialog, Copy SVG, extended grid limits, and mobile-friendly UI |
+| 2026-05-06 | Planned simplification pass (see `docs/next-release-plan.md`): one-click PNG export (dialog removed), built-ins hidden from library menu, aspect-ratio presets replaced by a swap button, Max-weight ceiling raised from 10 to 50 (randomize 2–30) |
