@@ -1,4 +1,4 @@
-import { getBuiltinShapes, registerCustomShape, removeCustomShape } from '../shapes/index.js';
+import { registerCustomShape, removeCustomShape } from '../shapes/index.js';
 import { ingestSvg } from '../shapes/custom.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -132,41 +132,6 @@ export function initShapeLibrary(containerEl, { onShapeRegistered, onShapeDelete
   const divider = document.createElement('div');
   divider.className = 'shape-lib-divider';
   wrap.appendChild(divider);
-
-  // Built-in shapes (read-only reference)
-  const builtinHeader = document.createElement('div');
-  builtinHeader.className = 'shape-lib-section-label';
-  builtinHeader.textContent = 'Built-in shapes';
-  wrap.appendChild(builtinHeader);
-
-  const builtinGrid = document.createElement('div');
-  builtinGrid.className = 'shape-lib-builtin-grid';
-  for (const shape of getBuiltinShapes()) {
-    const item = document.createElement('div');
-    item.className = 'shape-lib-item shape-lib-item--builtin';
-
-    const thumbSvg = document.createElementNS(SVG_NS, 'svg');
-    thumbSvg.setAttribute('viewBox', '0 0 36 36');
-    thumbSvg.setAttribute('width', '36'); thumbSvg.setAttribute('height', '36');
-    thumbSvg.style.display = 'block';
-    const p = document.createElementNS(SVG_NS, 'path');
-    p.setAttribute('d', shape.pathFn(36, 36, 0));
-    p.setAttribute('fill', '#555');
-    thumbSvg.appendChild(p);
-
-    const thumb = document.createElement('div');
-    thumb.className = 'shape-lib-thumb';
-    thumb.appendChild(thumbSvg);
-
-    const name = document.createElement('span');
-    name.className = 'shape-lib-name';
-    name.textContent = shape.name;
-
-    item.appendChild(thumb);
-    item.appendChild(name);
-    builtinGrid.appendChild(item);
-  }
-  wrap.appendChild(builtinGrid);
 
   // Custom shapes
   const customHeader = document.createElement('div');

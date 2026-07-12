@@ -579,25 +579,12 @@ input[type="color"].is-null { opacity: 0.25; }
   margin-bottom: 6px;
 }
 
-.shape-lib-builtin-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
 .shape-lib-item {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 9px;
   color: var(--text);
-}
-
-.shape-lib-item--builtin {
-  padding: 4px 6px;
-  background: #141414;
-  border: 1px solid var(--border);
 }
 
 .shape-lib-thumb {
