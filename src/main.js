@@ -1,12 +1,12 @@
 import { generate } from './generate.js';
 import { render } from './render.js';
-import { exportSVG, copySVGToClipboard } from './export.js';
+import { copySVGToClipboard, prepareSVGString, exportPNG } from './export.js';
+import state from './state.js';
 import { randomizeAll } from './randomize.js';
 import { initCanvasSetup } from './ui/canvas-setup.js';
 import { initModuleList } from './ui/module-list.js';
 import { initGridControls } from './ui/grid-controls.js';
 import { initGenerationControls } from './ui/generation-controls.js';
-import { initExportDialog } from './ui/export-dialog.js';
 import { initMobileNav } from './ui/mobile-nav.js';
 
 // ── Persist <details> open/close state across the session ────────────────────
@@ -62,10 +62,6 @@ const genAPI = initGenerationControls(
 );
 refreshGrammarMatrix = () => genAPI.refreshMatrix();
 
-// ── Export dialog ─────────────────────────────────────────────────────────────
-
-const exportDialog = initExportDialog();
-
 // ── Action buttons ────────────────────────────────────────────────────────────
 
 document.getElementById('generate').addEventListener('click', doGenerate);
@@ -96,11 +92,21 @@ document.getElementById('copy-svg').addEventListener('click', async (e) => {
   }, 1500);
 });
 
-document.getElementById('export-svg').addEventListener('click', () => exportDialog.open());
+document.getElementById('export-png').addEventListener('click', async () => {
+  const xml = prepareSVGString();
+  const blob = await exportPNG(xml, 1200, state.aspectWidth, state.aspectHeight);
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), {
+    href: url,
+    download: 'composition.png',
+  });
+  a.click();
+  URL.revokeObjectURL(url);
+});
 
 // ── Mobile nav ────────────────────────────────────────────────────────────────
 
-initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDialog });
+initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI });
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@ import { randomizeAll } from '../randomize.js';
 import { prepareSVGString, exportPNG } from '../export.js';
 import state from '../state.js';
 
-export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDialog }) {
+export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI }) {
   const sidebar = document.querySelector('.sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   const menuBtn = document.getElementById('mobile-menu');
@@ -28,10 +28,16 @@ export function initMobileNav({ canvasAPI, moduleAPI, gridAPI, genAPI, exportDia
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Grid Composition' });
       } else {
-        exportDialog.open();
+        // Fallback: trigger direct download
+        const url = URL.createObjectURL(pngBlob);
+        const a = Object.assign(document.createElement('a'), {
+          href: url, download: 'composition.png',
+        });
+        a.click();
+        URL.revokeObjectURL(url);
       }
     } catch {
-      exportDialog.open();
+      /* swallow — user can retry */
     }
   });
 
