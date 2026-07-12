@@ -214,6 +214,7 @@ select {
 
 .ar-row {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin-bottom: 8px;
 }
@@ -226,23 +227,18 @@ select {
 }
 .ar-input { width: 52px; }
 
-.presets-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-.preset-btn {
-  background: var(--border);
+.ar-swap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
   border: 1px solid var(--border-accent);
-  color: var(--text);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  padding: 3px 8px;
+  color: var(--text-dim);
   cursor: pointer;
-  letter-spacing: 0.05em;
 }
-.preset-btn:hover { color: var(--text-bright); border-color: var(--text-dim); }
+.ar-swap-btn:hover { color: var(--text-bright); border-color: var(--text-dim); }
 
 .checkbox-row {
   display: flex;
