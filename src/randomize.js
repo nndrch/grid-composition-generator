@@ -25,12 +25,12 @@ export function randomizeAll() {
 
   // Column waveform
   state.colWaveform  = randPick(WAVEFORMS);
-  state.colMaxWeight = randInt(2, 10);
+  state.colMaxWeight = randInt(2, 30);
   state.colPeak      = randFloat(0.1, 0.9);
 
   // Row waveform
   state.rowWaveform  = randPick(WAVEFORMS);
-  state.rowMaxWeight = randInt(2, 10);
+  state.rowMaxWeight = randInt(2, 30);
   state.rowPeak      = randFloat(0.1, 0.9);
 
   // Generation params

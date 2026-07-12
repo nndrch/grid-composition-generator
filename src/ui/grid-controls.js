@@ -96,7 +96,7 @@ function buildAxisBlock(label, axis) {
 
   // Max / Peak
   const maxInput = createNumericInput({
-    label: 'Max weight', min: 1, max: 10, step: 1, value: getMaxWeight(),
+    label: 'Max weight', min: 1, max: 50, step: 1, value: getMaxWeight(),
     disabled: getWaveform() === 'locked',
     onChange: v => {
       if (isCol) state.colMaxWeight = v; else state.rowMaxWeight = v;
