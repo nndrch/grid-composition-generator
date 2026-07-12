@@ -13,19 +13,20 @@ A client-side web app for generating grid-based geometric compositions, inspired
 - **Symmetry modes** — Mirror X, Mirror Y, 4-fold
 - **Grammar transitions** — N×N matrix constraining which modules can follow each other left-to-right
 - **Grid waveforms** — Locked (uniform) or Unlocked (sawtooth) column/row sizing with peak control
-- **Aspect ratio control** — ratio inputs + quick presets (1:1, 4:3, 16:9, …); exported SVG is viewBox-only, fully resolution-independent
+- **Aspect ratio control** — W/H ratio inputs with one-click ⇄ swap; exported SVG is viewBox-only, fully resolution-independent
 - **Randomize all** — one-click palette-coherent randomization of all generation parameters
-- **SVG export** — no `width`/`height` attributes; opens at any size in Illustrator, Inkscape, Figma
+- **Copy SVG** — copies viewBox-only SVG (no `width`/`height`) to the clipboard; opens at any size in Illustrator, Inkscape, Figma
+- **PNG export** — one-click 1200px-wide PNG download; on mobile, exports via the native share sheet
 
 ## Usage
 
-1. Set canvas aspect ratio (or pick a preset)
+1. Set canvas aspect ratio (⇄ swaps W and H)
 2. Add modules to the pool — choose a shape, set colors and weight
 3. Optionally upload custom SVG shapes via the shape library
 4. Configure grid waveforms (Columns / Rows)
 5. Tune generation settings (noise scale, symmetry, rotation, grammar)
 6. Click **↻ Generate** — or **⚂ Randomize all** to explore
-7. Click **↓ Export SVG** to download
+7. Click **⎘ Copy SVG** to copy the SVG, or **↓ Export PNG** to download a PNG
 
 ## Local dev
 
