@@ -53,6 +53,6 @@ Zero runtime npm dependencies.
 
 Upload any SVG with an explicit `viewBox`. The app overwrites all fill, stroke, and stroke-width at render time — author with any colors. The 4 step orientations are produced by mirroring (not rotation). See `docs/project-specification.md` Appendix A for the full authoring guide.
 
-## Roadmap
+## Archived ideas
 
-- **Figma plugin** — a parallel build target that draws the composition as native, editable Figma layers instead of exporting SVG. Full generation feature parity with the web app, minus the export step (Figma's built-in Export handles PNG/SVG/PDF). Lives in `figma-plugin/` alongside the web app and reuses the pure generation core (`noise`, `grammar`, `symmetry`, `grid`, `generate`, `randomize`, `shapes/*`) by direct import. Spec: [`docs/figma-plugin-spec.md`](./docs/figma-plugin-spec.md).
+- **Figma plugin** — archived July 2026, not being pursued. Was planned as a parallel build target drawing compositions as native, editable Figma layers. Spec preserved at [`docs/archive/figma-plugin-spec.md`](./docs/archive/figma-plugin-spec.md).

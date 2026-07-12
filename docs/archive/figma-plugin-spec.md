@@ -1,6 +1,8 @@
 # Figma Plugin — Specification
 
-> Companion to [`project-specification.md`](./project-specification.md). Describes the Figma plugin build target, a parallel deliverable to the web app at https://grid-composition-generator.vercel.app.
+> **ARCHIVED — July 2026.** This project was dropped before implementation started and is not being pursued. The `figma-plugin/` directory described below was never created. This document is preserved for reference only.
+
+> Companion to [`project-specification.md`](../project-specification.md). Describes the Figma plugin build target, a parallel deliverable to the web app at https://grid-composition-generator.vercel.app.
 
 ---
 
