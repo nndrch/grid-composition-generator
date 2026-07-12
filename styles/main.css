@@ -214,6 +214,7 @@ select {
 
 .ar-row {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin-bottom: 8px;
 }
@@ -226,23 +227,18 @@ select {
 }
 .ar-input { width: 52px; }
 
-.presets-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-.preset-btn {
-  background: var(--border);
+.ar-swap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
   border: 1px solid var(--border-accent);
-  color: var(--text);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px;
-  padding: 3px 8px;
+  color: var(--text-dim);
   cursor: pointer;
-  letter-spacing: 0.05em;
 }
-.preset-btn:hover { color: var(--text-bright); border-color: var(--text-dim); }
+.ar-swap-btn:hover { color: var(--text-bright); border-color: var(--text-dim); }
 
 .checkbox-row {
   display: flex;
@@ -579,25 +575,12 @@ input[type="color"].is-null { opacity: 0.25; }
   margin-bottom: 6px;
 }
 
-.shape-lib-builtin-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
 .shape-lib-item {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 9px;
   color: var(--text);
-}
-
-.shape-lib-item--builtin {
-  padding: 4px 6px;
-  background: #141414;
-  border: 1px solid var(--border);
 }
 
 .shape-lib-thumb {
@@ -730,95 +713,6 @@ input[type="color"].is-null { opacity: 0.25; }
 }
 
 .about-content a:hover { text-decoration: underline; }
-
-/* ── Export dialog ───────────────────────────────────────────────────────── */
-
-#export-dialog {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border-accent);
-  border-radius: 4px;
-  padding: 24px;
-  min-width: 320px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  margin: auto;
-}
-
-#export-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.65);
-}
-
-.export-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.export-form h2 {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-bright);
-}
-
-.form-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-}
-
-.form-row select,
-.form-row input[type="number"] {
-  background: var(--bg);
-  border: 1px solid var(--border-accent);
-  color: var(--text-bright);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  padding: 4px 6px;
-  border-radius: 2px;
-  min-width: 70px;
-}
-
-.format-group {
-  border: none;
-  padding: 0;
-  display: flex;
-  gap: 16px;
-}
-
-.format-group legend {
-  font-size: 11px;
-  color: var(--text);
-  margin-bottom: 6px;
-  float: left;
-  width: 100%;
-}
-
-.format-group label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.png-height-readout {
-  color: var(--text-dim);
-  font-size: 10px;
-  white-space: nowrap;
-}
-
-.png-width-row.is-hidden { display: none; }
-
-.dialog-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 4px;
-}
 
 /* ── Mobile chrome (hidden on desktop) ───────────────────────────────────── */
 

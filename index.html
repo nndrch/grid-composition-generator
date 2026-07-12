@@ -65,7 +65,7 @@
         <button class="btn-primary" id="generate">↻ Generate</button>
         <button class="btn-secondary" id="randomize">⚂ Randomize all</button>
         <button class="btn-secondary" id="copy-svg">⎘ Copy SVG</button>
-        <button class="btn-secondary" id="export-svg">↓ Export…</button>
+        <button class="btn-secondary" id="export-png">↓ Export PNG</button>
       </div>
 
       <details id="section-about" class="sidebar-section" open>
@@ -89,41 +89,6 @@
       </div>
     </main>
   </div>
-
-  <dialog id="export-dialog">
-    <form method="dialog" class="export-form">
-      <h2>Export composition</h2>
-
-      <label class="form-row">
-        Generations
-        <select name="count" id="dialog-count">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="4">4</option>
-          <option value="8">8</option>
-          <option value="16">16</option>
-        </select>
-      </label>
-
-      <fieldset class="format-group">
-        <legend>Format</legend>
-        <label><input type="radio" name="format" value="svg" checked> SVG</label>
-        <label><input type="radio" name="format" value="png"> PNG</label>
-      </fieldset>
-
-      <label class="form-row png-width-row">
-        Width (px)
-        <input type="number" name="pngWidth" id="dialog-png-width" min="100" max="8000" step="100" value="1200">
-        <span class="png-height-readout" id="dialog-height-readout">× 1200 px</span>
-      </label>
-
-      <div class="dialog-actions">
-        <button type="button" class="btn-secondary" id="dialog-copy">⎘ Copy SVG</button>
-        <button type="button" class="btn-secondary" id="dialog-cancel">Cancel</button>
-        <button type="submit" class="btn-primary" id="dialog-download">↓ Download</button>
-      </div>
-    </form>
-  </dialog>
 
   <script type="module" src="src/main.js"></script>
 </body>

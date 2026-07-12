@@ -2,15 +2,6 @@ import state from '../state.js';
 import { computeTrackSizes } from '../grid.js';
 import { render } from '../render.js';
 
-const PRESETS = [
-  { label: '1:1',  w: 1,  h: 1  },
-  { label: '4:3',  w: 4,  h: 3  },
-  { label: '3:2',  w: 3,  h: 2  },
-  { label: '16:9', w: 16, h: 9  },
-  { label: '2:3',  w: 2,  h: 3  },
-  { label: '9:16', w: 9,  h: 16 },
-];
-
 let _wInput, _hInput, _gridCheck;
 
 function recomputeAndRender() {
@@ -58,25 +49,33 @@ export function initCanvasSetup(sectionEl) {
   const w = makeArInput('W', () => state.aspectWidth,  v => { state.aspectWidth  = v; });
   const h = makeArInput('H', () => state.aspectHeight, v => { state.aspectHeight = v; });
   _wInput = w.inp; _hInput = h.inp;
+
+  // Swap button
+  const swapBtn = document.createElement('button');
+  swapBtn.type = 'button';
+  swapBtn.className = 'ar-swap-btn';
+  swapBtn.setAttribute('aria-label', 'Swap width and height');
+  swapBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+         stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 7h13M7 7l4-4M7 7l4 4"/>
+      <path d="M17 17H4M17 17l-4-4M17 17l-4 4"/>
+    </svg>
+  `;
+  swapBtn.addEventListener('click', () => {
+    const oldW = state.aspectWidth;
+    state.aspectWidth = state.aspectHeight;
+    state.aspectHeight = oldW;
+    _wInput.value = state.aspectWidth;
+    _hInput.value = state.aspectHeight;
+    recomputeAndRender();
+  });
+
   arRow.appendChild(w.wrap);
+  arRow.appendChild(swapBtn);
   arRow.appendChild(h.wrap);
   content.appendChild(arRow);
-
-  // Preset buttons
-  const presetsRow = document.createElement('div');
-  presetsRow.className = 'presets-row';
-  for (const p of PRESETS) {
-    const btn = document.createElement('button');
-    btn.className = 'preset-btn';
-    btn.textContent = p.label;
-    btn.addEventListener('click', () => {
-      state.aspectWidth  = p.w; state.aspectHeight = p.h;
-      _wInput.value = p.w;     _hInput.value = p.h;
-      recomputeAndRender();
-    });
-    presetsRow.appendChild(btn);
-  }
-  content.appendChild(presetsRow);
 
   // Show grid toggle
   const gridRow = document.createElement('label');

@@ -6,17 +6,6 @@ export function prepareSVGString() {
   return new XMLSerializer().serializeToString(svg);
 }
 
-export function exportSVG() {
-  const xml = prepareSVGString();
-  const blob = new Blob([xml], { type: 'image/svg+xml' });
-  const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(blob),
-    download: 'composition.svg',
-  });
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
 export async function copySVGToClipboard() {
   const xml = prepareSVGString();
   await navigator.clipboard.writeText(xml);
